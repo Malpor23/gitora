@@ -1,0 +1,115 @@
+@for (d of dialogs.stack(); track d.id; let last = $last) {
+  <div
+    class="fixed inset-0 z-50 grid items-start justify-items-center pt-[9vh]"
+    [class.bg-backdrop]="last"
+    (mousedown)="closeOnBackdrop($event)"
+  >
+    <div
+      class="flex max-h-[86vh] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[10px] border border-line-strong bg-surface shadow-dialog transition-[opacity,translate,scale] duration-150 ease-out starting:translate-y-1.5 starting:scale-[.985] starting:opacity-0 motion-reduce:transition-none"
+      role="dialog"
+      aria-modal="true"
+      (keydown)="trapFocus($event)"
+      [style.width.px]="d.width"
+    >
+      <ng-container *ngComponentOutlet="d.component; injector: d.injector" />
+    </div>
+  </div>
+}
+
+@if (menu.state(); as m) {
+  <div
+    class="fixed inset-0 z-60"
+    (mousedown)="menu.close()"
+    (contextmenu)="$event.preventDefault(); menu.close()"
+  ></div>
+  <ul
+    #menuEl
+    class="fixed z-61 m-0 max-w-95 min-w-55 list-none rounded-lg border border-line-strong bg-surface p-1 shadow-dialog"
+    role="menu"
+    [style.left.px]="m.x"
+    [style.top.px]="m.y"
+  >
+    @for (it of m.items; track $index) {
+      @if (it.separator) {
+        <li class="mx-1.5 my-1 h-px list-none bg-line" role="separator"></li>
+      } @else if (it.header) {
+        <li
+          class="px-2 pt-1.5 pb-1 text-[.8em] font-semibold tracking-wide text-faint uppercase"
+          role="presentation"
+        >
+          {{ it.label }}
+        </li>
+      } @else {
+        <li
+          role="menuitem"
+          class="flex cursor-default items-center gap-2 rounded-[5px] py-1.25 pr-2.5 pl-1.5 whitespace-nowrap hover:bg-selected"
+          [class.text-danger]="it.danger"
+          [class.opacity-45]="it.disabled"
+          (click)="pickEnabled(it)"
+        >
+          <span
+            class="inline-flex w-4"
+            [class.text-muted]="!it.danger"
+            [class.text-danger]="it.danger"
+          >
+            @if (it.icon) {
+              <gt-icon [name]="it.icon" [size]="14" />
+            }
+          </span>
+          <span class="flex-1 truncate">{{ it.label }}</span>
+          @if (it.shortcut) {
+            <kbd class="font-mono text-[.76em] text-faint">{{ it.shortcut }}</kbd>
+          }
+        </li>
+      }
+    }
+  </ul>
+}
+
+<div
+  class="pointer-events-none fixed right-4 bottom-9 z-70 flex flex-col items-end gap-2"
+  aria-live="polite"
+>
+  @for (t of notify.toasts(); track t.id) {
+    <div
+      class="pointer-events-auto flex max-w-115 min-w-65 cursor-default items-start gap-2.5 rounded-lg border bg-surface px-3.5 py-2.5 shadow-dialog"
+      [class.border-line-strong]="t.kind !== 'error'"
+      [class.border-danger]="t.kind === 'error'"
+      (click)="dismissToast(t)"
+    >
+      @switch (t.kind) {
+        @case ('success') {
+          <gt-icon class="text-success" name="check" [size]="15" />
+        }
+        @case ('error') {
+          <gt-icon class="text-danger" name="alert" [size]="15" />
+        }
+        @case ('progress') {
+          <span class="spinner"></span>
+        }
+        @default {
+          <gt-icon class="text-accent-fg" name="info" [size]="15" />
+        }
+      }
+      <div class="min-w-0 flex-1 leading-[1.4] whitespace-pre-wrap [word-break:break-word]">
+        <div>{{ t.text }}</div>
+        @if (t.detail) {
+          <div class="mt-0.5 text-[.88em] text-muted">
+            {{ t.detail }}
+            @if (t.percent !== null && t.percent !== undefined) {
+              — {{ t.percent }}%
+            }
+          </div>
+        }
+        @if (t.kind === 'progress' && t.percent !== null && t.percent !== undefined) {
+          <div class="mt-1.5 h-0.75 overflow-hidden rounded-xs bg-line">
+            <span
+              class="block h-full bg-accent transition-[width] duration-200"
+              [style.width.%]="t.percent"
+            ></span>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

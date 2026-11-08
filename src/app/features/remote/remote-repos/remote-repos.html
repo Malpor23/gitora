@@ -1,0 +1,80 @@
+<div class="dialog">
+  <header class="dialog-head">
+    <h2>{{ 'accounts.reposTitle' | t }}</h2>
+    <button class="icon-btn" (click)="ref.close()">
+      <gt-icon name="x" />
+    </button>
+  </header>
+  <div class="dialog-body">
+    @if (!accounts().length) {
+      <p class="muted">{{ 'accounts.noAccounts' | t }}</p>
+    } @else {
+      <div class="mb-2.5 flex items-center gap-2">
+        <select
+          class="w-auto max-w-65"
+          [ngModel]="accountId()"
+          (ngModelChange)="pick($event)"
+          [attr.aria-label]="'accounts.selectAccount' | t"
+        >
+          @for (a of accounts(); track a.id) {
+            <option [value]="a.id">{{ a.username }} — {{ a.host }}</option>
+          }
+        </select>
+        <input
+          type="search"
+          class="flex-1"
+          [placeholder]="'accounts.filter' | t"
+          [ngModel]="query()"
+          (ngModelChange)="query.set($event)"
+        />
+        <label class="flex items-center gap-1.5 whitespace-nowrap text-muted">
+          <input type="checkbox" [ngModel]="ssh()" (ngModelChange)="ssh.set($event)" />
+          {{ 'accounts.useSsh' | t }}
+        </label>
+      </div>
+      @if (error()) {
+        <p class="error-text">{{ error() }}</p>
+      }
+      <ul class="m-0 max-h-[58vh] list-none overflow-auto rounded-lg border border-line p-0">
+        @if (loading()) {
+          <li
+            class="grid grid-cols-[22px_1fr_auto_auto] items-center gap-2.5 border-b border-line px-3 py-2 hover:bg-hover muted"
+          >
+            <span class="spinner"></span>
+          </li>
+        }
+        @for (r of filtered(); track r.fullName) {
+          <li
+            class="grid grid-cols-[22px_1fr_auto_auto] items-center gap-2.5 border-b border-line px-3 py-2 hover:bg-hover"
+            (dblclick)="clone(r)"
+          >
+            <gt-provider-mark [provider]="r.provider" />
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 font-medium">
+                {{ r.fullName }}
+                @if (r.private) {
+                  <span
+                    class="inline-flex items-center gap-0.75 rounded-sm border border-line px-1.25 text-[.75em] font-normal text-muted"
+                  >
+                    <gt-icon name="lock" [size]="11" /> {{ 'accounts.private' | t }}
+                  </span>
+                }
+                @if (r.fork) {
+                  <span
+                    class="inline-flex items-center gap-0.75 rounded-sm border border-line px-1.25 text-[.75em] font-normal text-muted"
+                  >
+                    {{ 'accounts.fork' | t }}</span>
+                }
+              </div>
+              @if (r.description) {
+                <div class="truncate text-[.9em] text-muted">{{ r.description }}</div>
+              }
+            </div>
+            <span class="text-[.86em] text-faint">{{ r.updatedAt | relTime }}</span>
+            <button class="btn small" (click)="clone(r)">{{ 'accounts.clone' | t }}</button>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</div>

@@ -1,0 +1,77 @@
+<div
+  class="grid justify-center gap-8 px-10 pt-[10vh] pb-10 grid-cols-1 min-[861px]:grid-cols-[minmax(320px,460px)_minmax(300px,520px)] min-[861px]:gap-16"
+>
+  <div>
+    <h1 class="m-0 mb-2.5 text-[1.9em] leading-[1.2] font-semibold tracking-[-0.01em]">
+      {{ 'welcome.title' | t }}
+    </h1>
+    <p class="m-0 mb-7 max-w-[46ch] leading-[1.55] text-muted">{{ 'welcome.subtitle' | t }}</p>
+    <div class="flex flex-col gap-0.5">
+      <button
+        class="flex items-center gap-3 rounded-lg border-0 bg-transparent px-3 py-2.5 text-left font-[inherit] text-fg cursor-pointer hover:bg-hover focus-visible:outline-2 focus-visible:outline-accent"
+        (click)="flows.openRepo()"
+      >
+        <gt-icon class="text-accent-fg" name="folder-open" [size]="18" />
+        <span class="flex-1">{{ 'welcome.open' | t }}</span>
+        <kbd class="font-mono text-[.78em] text-faint">Ctrl+O</kbd>
+      </button>
+      <button
+        class="flex items-center gap-3 rounded-lg border-0 bg-transparent px-3 py-2.5 text-left font-[inherit] text-fg cursor-pointer hover:bg-hover focus-visible:outline-2 focus-visible:outline-accent"
+        (click)="flows.cloneRepo()"
+      >
+        <gt-icon class="text-accent-fg" name="download" [size]="18" />
+        <span class="flex-1">{{ 'welcome.clone' | t }}</span>
+      </button>
+      <button
+        class="flex items-center gap-3 rounded-lg border-0 bg-transparent px-3 py-2.5 text-left font-[inherit] text-fg cursor-pointer hover:bg-hover focus-visible:outline-2 focus-visible:outline-accent"
+        (click)="flows.cloneFromAccount()"
+      >
+        <gt-icon class="text-accent-fg" name="users" [size]="18" />
+        <span class="flex-1">{{ 'welcome.fromAccount' | t }}</span>
+      </button>
+      <button
+        class="flex items-center gap-3 rounded-lg border-0 bg-transparent px-3 py-2.5 text-left font-[inherit] text-fg cursor-pointer hover:bg-hover focus-visible:outline-2 focus-visible:outline-accent"
+        (click)="flows.initRepo()"
+      >
+        <gt-icon class="text-accent-fg" name="plus-square" [size]="18" />
+        <span class="flex-1">{{ 'welcome.init' | t }}</span>
+      </button>
+    </div>
+    <p
+      class="mt-7 flex items-center gap-1.5 text-[.88em]"
+      [class.text-faint]="settings.gitVersion()"
+      [class.text-warning]="!settings.gitVersion()"
+    >
+      @if (settings.gitVersion(); as v) {
+        <gt-icon class="text-success" name="check" [size]="14" />
+        {{ 'welcome.gitFound' | t: { version: v } }}
+      } @else {
+        <gt-icon class="text-warning" name="alert" [size]="14" /> {{ 'welcome.gitMissing' | t }}
+      }
+    </p>
+  </div>
+  <div>
+    <h2 class="mt-1.5 mb-3 text-[.95em] font-semibold text-muted">{{ 'welcome.recent' | t }}</h2>
+    @if (!recent().length) {
+      <p class="muted">{{ 'welcome.noRecent' | t }}</p>
+    }
+    <ul class="m-0 list-none p-0">
+      @for (r of recent(); track r) {
+        <li
+          class="grid cursor-pointer grid-cols-[18px_auto_1fr] items-center gap-2.5 rounded-md px-2.5 py-2 hover:bg-hover"
+          (click)="ws.open(r)"
+          (contextmenu)="menuFor($event, r)"
+          [title]="r"
+        >
+          <gt-icon class="text-faint" name="git-branch" [size]="15" />
+          <span class="font-medium">{{ base(r) }}</span>
+          <span
+            class="overflow-hidden text-left text-[.86em] text-ellipsis whitespace-nowrap text-faint [direction:rtl]"
+          >
+            <bdi>{{ r }}</bdi>
+          </span>
+        </li>
+      }
+    </ul>
+  </div>
+</div>

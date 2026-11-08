@@ -1,0 +1,88 @@
+<div class="dialog">
+  <header class="dialog-head">
+    <h2>{{ 'dialogs.conflict.title' | t: { path: data.path } }}</h2>
+    <button class="icon-btn" (click)="ref.close()">
+      <gt-icon name="x" />
+    </button>
+  </header>
+  <div class="dialog-body">
+    <div class="mb-2.5 flex gap-2">
+      <button class="btn small" (click)="all('ours')">
+        {{ 'dialogs.conflict.useOurs' | t }} ({{ 'common.all' | t }})
+      </button>
+      <button class="btn small" (click)="all('theirs')">
+        {{ 'dialogs.conflict.useTheirs' | t }} ({{ 'common.all' | t }}
+        )
+      </button>
+      <span class="spacer"></span>
+      <button class="btn small ghost" (click)="mergetool()">
+        {{ 'changes.openMergeTool' | t }}
+      </button>
+    </div>
+    <div
+      class="mono max-h-[40vh] overflow-auto rounded-lg border border-line text-(length:--mono-size)"
+    >
+      @for (b of blocks(); track $index; let i = $index) {
+        @if (b.kind === 'text') {
+          <pre class="m-0 px-2.5 py-1 whitespace-pre-wrap text-muted">{{ b.text }}</pre>
+        } @else {
+          <div class="relative grid grid-cols-2 border-y border-line">
+            <div
+              class="border-r border-line bg-diff-del-bg"
+              [class]="
+                b.choice === 'ours' || b.choice === 'both'
+                  ? 'opacity-100 shadow-[inset_0_0_0_2px_var(--accent)]'
+                  : 'opacity-85'
+              "
+            >
+              <div
+                class="flex items-center justify-between border-b border-line px-2 py-0.75 font-sans text-[.85em] text-muted"
+              >
+                {{ 'dialogs.conflict.ours' | t }}
+                <button class="btn tiny" (click)="choose(i, 'ours')">
+                  {{ 'dialogs.conflict.useOurs' | t }}
+                </button>
+              </div>
+              <pre class="m-0 px-2.5 py-1 whitespace-pre-wrap">{{ b.ours }}</pre>
+            </div>
+            <div
+              class="border-r border-line bg-diff-add-bg"
+              [class]="
+                b.choice === 'theirs' || b.choice === 'both'
+                  ? 'opacity-100 shadow-[inset_0_0_0_2px_var(--accent)]'
+                  : 'opacity-85'
+              "
+            >
+              <div
+                class="flex items-center justify-between border-b border-line px-2 py-0.75 font-sans text-[.85em] text-muted"
+              >
+                {{ 'dialogs.conflict.theirs' | t }}
+                <button class="btn tiny" (click)="choose(i, 'theirs')">
+                  {{ 'dialogs.conflict.useTheirs' | t }}
+                </button>
+              </div>
+              <pre class="m-0 px-2.5 py-1 whitespace-pre-wrap">{{ b.theirs }}</pre>
+            </div>
+            <button class="btn tiny absolute right-2 bottom-1.5" (click)="choose(i, 'both')">
+              {{ 'dialogs.conflict.useBoth' | t }}
+            </button>
+          </div>
+        }
+      }
+    </div>
+    <label class="mt-3 mb-1.5 block text-muted">{{ 'dialogs.conflict.result' | t }}</label>
+    <textarea
+      class="mono text-(length:--mono-size)"
+      rows="10"
+      [ngModel]="result()"
+      (ngModelChange)="result.set($event); edited = true"
+      spellcheck="false"
+    ></textarea>
+  </div>
+  <footer class="dialog-foot">
+    <button class="btn ghost" (click)="ref.close()">{{ 'common.cancel' | t }}</button>
+    <button class="btn primary" [disabled]="hasMarkers()" (click)="save()">
+      {{ 'dialogs.conflict.saveResolved' | t }}
+    </button>
+  </footer>
+</div>

@@ -1,0 +1,372 @@
+/* You can add global styles to this file, and also import other style files */
+
+@import 'tailwindcss';
+
+/* Tokens de color/tipografía expuestos a Tailwind; `inline` mantiene la referencia a las
+   variables CSS para que el cambio de tema claro/oscuro siga funcionando. */
+@theme inline {
+  --font-sans: var(--sans);
+  --font-mono: var(--mono);
+
+  --color-bg: var(--bg);
+  --color-chrome: var(--chrome);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-sidebar: var(--sidebar-bg);
+  --color-console: var(--console-bg);
+  --color-input: var(--input-bg);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-hover: var(--hover);
+  --color-selected: var(--selected);
+  --color-fg: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-icon: var(--icon);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-fg: var(--accent-text);
+  --color-on-accent: var(--on-accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-diff-add-bg: var(--diff-add-bg);
+  --color-diff-add: var(--diff-add-fg);
+  --color-diff-del-bg: var(--diff-del-bg);
+  --color-diff-del: var(--diff-del-fg);
+  --color-hunk: var(--hunk-bg);
+  --color-st-added: var(--st-added);
+  --color-st-modified: var(--st-modified);
+  --color-st-deleted: var(--st-deleted);
+  --color-st-renamed: var(--st-renamed);
+  --color-on-badge: var(--on-badge);
+  --color-tag: var(--tag);
+  --color-on-lane: var(--on-lane);
+  --color-backdrop: var(--backdrop);
+  --shadow-dialog: var(--shadow-lg);
+}
+
+:root {
+  --sans: 'IBM Plex Sans', 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
+  --font-size: 13px;
+  --mono-size: 12.5px;
+  color-scheme: dark;
+}
+
+:root, [data-theme='dark'] {
+  --bg: #191c24;
+  --chrome: #15171e;
+  --surface: #1e222c;
+  --surface-2: #22262f;
+  --sidebar-bg: #1b1e26;
+  --console-bg: #14161c;
+  --input-bg: #14161c;
+  --line: #2c3140;
+  --line-strong: #3a4052;
+  --hover: #262b37;
+  --selected: #2c3550;
+  --text: #d9dde7;
+  --muted: #8b92a6;
+  --faint: #616880;
+  --icon: #a6adc0;
+
+  --accent: #7b8cff;
+  --accent-soft: rgba(123, 140, 255, .14);
+  --accent-text: #9ba8ff;
+  --on-accent: #0f1222;
+  --success: #5fbf8f;
+  --warning: #e0b15a;
+  --warning-bg: rgba(224, 177, 90, .12);
+  --danger: #f07178;
+  --danger-bg: rgba(240, 113, 120, .12);
+
+  --diff-add-bg: rgba(95, 191, 143, .12);
+  --diff-add-fg: #6fcf9c;
+  --diff-del-bg: rgba(240, 113, 120, .12);
+  --diff-del-fg: #f2888e;
+  --hunk-bg: #1f2431;
+  --pad-bg: repeating-linear-gradient(-45deg, transparent 0 6px, rgba(255, 255, 255, .025) 6px 12px);
+
+  --st-added: #4fa97b;
+  --st-modified: #c99a3e;
+  --st-deleted: #d4626a;
+  --st-renamed: #6a7fe0;
+  --on-badge: #10131a;
+  --tag: #c99a3e;
+  --on-lane: #10131a;
+
+  /* Carriles del grafo: 8 tonos de igual luminosidad aproximada */
+  --lane-0: #7b8cff;
+  --lane-1: #4fc1a6;
+  --lane-2: #e08a5a;
+  --lane-3: #c37ee0;
+  --lane-4: #d9c25a;
+  --lane-5: #5aaee0;
+  --lane-6: #e06f9a;
+  --lane-7: #8fc95a;
+
+  --backdrop: rgba(8, 10, 16, .55);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, .45), 0 2px 6px rgba(0, 0, 0, .3);
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  --bg: #ffffff;
+  --chrome: #f1f3f6;
+  --surface: #fbfbfd;
+  --surface-2: #f4f5f8;
+  --sidebar-bg: #f6f7f9;
+  --console-bg: #f4f5f8;
+  --input-bg: #ffffff;
+  --line: #e1e4ea;
+  --line-strong: #cfd4de;
+  --hover: #eceef3;
+  --selected: #dfe4fb;
+  --text: #1d2130;
+  --muted: #5d6478;
+  --faint: #8e94a6;
+  --icon: #4d5468;
+
+  --accent: #4a5ae8;
+  --accent-soft: rgba(74, 90, 232, .1);
+  --accent-text: #3f4fd6;
+  --on-accent: #ffffff;
+  --success: #23875a;
+  --warning: #a8701b;
+  --warning-bg: #fff6e3;
+  --danger: #c93a45;
+  --danger-bg: #fdeced;
+
+  --diff-add-bg: #e6f6ed;
+  --diff-add-fg: #1f7a4f;
+  --diff-del-bg: #fcebec;
+  --diff-del-fg: #b8323d;
+  --hunk-bg: #f0f2f8;
+  --pad-bg: repeating-linear-gradient(-45deg, transparent 0 6px, rgba(0, 0, 0, .03) 6px 12px);
+
+  --st-added: #2f9a68;
+  --st-modified: #c28a1f;
+  --st-deleted: #cf4a55;
+  --st-renamed: #4a5ae8;
+  --on-badge: #ffffff;
+  --tag: #b8811c;
+  --on-lane: #ffffff;
+
+  --lane-0: #4a5ae8;
+  --lane-1: #1e9b80;
+  --lane-2: #d06a33;
+  --lane-3: #9b4fc4;
+  --lane-4: #b39516;
+  --lane-5: #2a86c4;
+  --lane-6: #cc4478;
+  --lane-7: #5e9c25;
+
+  --backdrop: rgba(30, 34, 48, .28);
+  --shadow-lg: 0 16px 40px rgba(20, 24, 40, .16), 0 2px 6px rgba(20, 24, 40, .08);
+  color-scheme: light;
+}
+
+/* Base: en capa para que las utilidades de Tailwind la sobrescriban sin `!`. */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    font-family: var(--sans), serif;
+    font-size: var(--font-size);
+    line-height: 1.4;
+    color: var(--text);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+  }
+
+  input, textarea, select, button {
+    font: inherit;
+    color: inherit;
+  }
+
+  input, textarea, pre, .selectable, .msg-body, .code {
+    user-select: text;
+  }
+
+  .mono {
+    font-family: var(--mono), monospace;
+  }
+
+  .muted {
+    color: var(--muted);
+  }
+
+  .spacer {
+    flex: 1;
+  }
+
+  ::selection {
+    background: var(--accent-soft);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  /* Barras de desplazamiento discretas */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--line-strong);
+    border-radius: 6px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--faint);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  /* Campos */
+  input[type=text], input[type=search], input[type=password], input[type=number], textarea, select {
+    width: 100%;
+    padding: 6px 9px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--input-bg);
+    outline: none;
+    transition: border-color .12s;
+
+    &:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    &::placeholder {
+      color: var(--faint);
+    }
+  }
+
+  input[type=search]::-webkit-search-cancel-button {
+    filter: grayscale(1);
+    opacity: .5;
+  }
+
+  textarea {
+    resize: vertical;
+    line-height: 1.45;
+  }
+
+  input[type=checkbox], input[type=radio] {
+    accent-color: var(--accent);
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    flex: none;
+  }
+
+  label {
+    display: block;
+    color: var(--muted);
+    font-size: .92em;
+    margin-bottom: 5px;
+  }
+
+  label.check, label.radio {
+    color: var(--text);
+    font-size: 1em;
+    margin-bottom: 0;
+  }
+
+  .hint {
+    color: var(--faint);
+    font-size: .86em;
+    margin: 5px 0 0;
+    line-height: 1.4;
+  }
+
+  .error-text {
+    color: var(--danger);
+    font-size: .9em;
+    margin: 5px 0 0;
+  }
+}
+
+/* Widgets compartidos: se componen con utilidades de Tailwind. */
+@layer components {
+  .btn {
+    @apply inline-flex h-7.5 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-md border border-line-strong bg-surface-2 px-3 text-fg;
+    @apply hover:not-disabled:border-faint hover:not-disabled:bg-hover disabled:cursor-default disabled:opacity-50;
+
+    &.primary {
+      @apply border-transparent bg-accent font-medium text-on-accent hover:not-disabled:bg-accent hover:not-disabled:brightness-110;
+    }
+
+    &.danger {
+      @apply border-transparent bg-danger font-medium text-white hover:not-disabled:bg-danger hover:not-disabled:brightness-110;
+    }
+
+    &.danger-ghost {
+      @apply border-transparent bg-transparent text-danger hover:not-disabled:border-transparent hover:not-disabled:bg-danger-bg;
+    }
+
+    &.ghost {
+      @apply border-transparent bg-transparent hover:not-disabled:bg-hover;
+    }
+
+    &.small {
+      @apply h-6.5 px-2.5 text-[.92em];
+    }
+
+    &.tiny {
+      @apply h-5.5 rounded-[5px] px-2 text-[.85em];
+    }
+  }
+
+  .icon-btn {
+    @apply inline-flex cursor-pointer items-center justify-center rounded-md border-0 bg-transparent p-1.25 text-muted hover:bg-hover hover:text-fg;
+
+    &.small {
+      @apply p-0.75;
+    }
+  }
+
+  .spinner {
+    @apply inline-block size-3.5 animate-spin rounded-full border-2 border-current border-r-transparent opacity-80 motion-reduce:[animation-duration:2s];
+  }
+
+  .dialog {
+    @apply flex max-h-[86vh] min-h-0 flex-col;
+  }
+
+  .dialog-head {
+    @apply flex flex-none items-center gap-2.5 border-b border-line py-3 pr-3 pl-4.5;
+
+    h2 {
+      @apply m-0 flex-1 truncate text-[1.05em] font-semibold;
+    }
+  }
+
+  .dialog-body {
+    @apply min-h-0 flex-1 overflow-auto px-4.5 py-4;
+  }
+
+  .dialog-foot {
+    @apply flex flex-none justify-end gap-2 border-t border-line bg-surface-2 px-4.5 py-3;
+  }
+}

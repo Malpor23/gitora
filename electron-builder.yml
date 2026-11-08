@@ -1,0 +1,67 @@
+appId: dev.manuel.gitora
+productName: Gitora
+copyright: Copyright © 2026 Manuel Gomez
+directories:
+  output: release
+  buildResources: public
+files:
+  - dist/**/*
+  - "!dist/**/*.map"
+  - "!dist/electron/tests/**"
+  - "!dist/electron/dev-server.js"
+  - package.json
+asar: true
+# Avisos legales junto al ejecutable (resources/): licencia MIT, avisos de terceros y licencia OFL de las fuentes.
+extraResources:
+  - from: LICENSE
+    to: LICENSE
+  - from: THIRD_PARTY_NOTICES.md
+    to: THIRD_PARTY_NOTICES.md
+  - from: licenses
+    to: licenses
+
+win:
+  target:
+    - target: nsis
+      arch: [x64, arm64]
+    - target: portable
+      arch: [x64]
+  icon: public/icon.png
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+  language: "3082"          # Español (internacional)
+  installerLanguages: [es_ES, en_US]
+  multiLanguageInstaller: true
+  createDesktopShortcut: true
+  shortcutName: Gitora
+
+linux:
+  target:
+    - AppImage
+    - pacman
+    - deb
+    - rpm
+    - tar.gz
+  category: Development
+  icon: packaging/icons
+  maintainer: Manuel Gomez <mg230886@gmail.com>
+  synopsis: Cliente Git gráfico y multidioma
+  # Claves de [Desktop Entry] (en electron-builder 26 van bajo desktop.entry). StartupWMClass debe
+  # coincidir con la clase de la ventana en X11 (y el nombre de gitora.desktop con el app_id en
+  # Wayland): ambas son «gitora».
+  desktop:
+    entry:
+      Name: Gitora
+      Comment: Graphical Git client
+      Comment[es]: Cliente Git gráfico
+      Comment[en]: Graphical Git client
+      Categories: Development;RevisionControl;
+      StartupWMClass: gitora
+pacman:
+  depends: [git, gtk3, nss, libxss, libsecret]
+deb:
+  depends: [git, libgtk-3-0, libnss3, libxss1, libsecret-1-0]
+rpm:
+  depends: [git, gtk3, nss, libXScrnSaver, libsecret]

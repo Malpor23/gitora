@@ -1,0 +1,42 @@
+<div class="dialog h-[82vh]">
+  <header class="dialog-head">
+    <h2>{{ 'dialogs.blame.title' | t: { path: data.path } }}</h2>
+    <button class="icon-btn" (click)="ref.close()"><gt-icon name="x" /></button>
+  </header>
+  <div class="dialog-body mono overflow-auto p-0 text-(length:--mono-size)">
+    @if (!lines().length) {
+      <p class="p-4"><span class="spinner"></span></p>
+    }
+    <table class="w-full border-collapse">
+      <tbody>
+        @for (l of rows(); track l.lineNo) {
+          <tr [class.bg-surface-2]="l.alt">
+            <td
+              class="px-2 py-0 align-top leading-[1.55] whitespace-pre max-w-75 w-75 cursor-pointer overflow-hidden font-sans text-[.9em] text-ellipsis text-muted hover:text-accent-fg"
+              [class]="l.first ? 'border-t border-line' : ''"
+              (click)="open(l.hash)"
+              [title]="l.summary"
+            >
+              @if (l.first) {
+                <span class="font-mono text-faint">{{ l.hash.slice(0, 8) }}</span> {{ l.author }} ·
+                {{ l.date | relTime }}
+              }
+            </td>
+            <td
+              class="px-2 py-0 align-top leading-[1.55] whitespace-pre w-[1%] text-right text-faint select-none"
+              [class]="l.first ? 'border-t border-line' : ''"
+            >
+              {{ l.lineNo }}
+            </td>
+            <td
+              class="code px-2 py-0 align-top leading-[1.55] whitespace-pre"
+              [class]="l.first ? 'border-t border-line' : ''"
+            >
+              {{ l.content }}
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

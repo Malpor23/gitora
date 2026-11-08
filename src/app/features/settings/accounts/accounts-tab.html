@@ -1,0 +1,184 @@
+@if (!accounts().length) {
+  <div class="flex flex-col items-start gap-3">
+    <p class="muted">{{ 'accounts.empty' | t }}</p>
+    <button type="button" class="btn primary" (click)="add()">
+      <gt-icon name="plus" [size]="13" />
+      {{ 'accounts.add' | t }}
+    </button>
+  </div>
+} @else {
+  <div class="grid min-h-90 grid-cols-[220px_1fr] gap-4">
+    <div class="flex min-h-0 flex-col">
+      <ul
+        class="m-0 min-h-0 flex-1 list-none overflow-auto rounded-t-lg border border-line p-0.5"
+        role="listbox"
+        [attr.aria-label]="'accounts.listLabel' | t"
+        (keydown)="onListKey($event)"
+      >
+        @for (a of accounts(); track a.id) {
+          <li
+            role="option"
+            class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 outline-offset-[-2px] focus-visible:outline-2 focus-visible:outline-accent"
+            [id]="'acc-opt-' + a.id"
+            [class]="selected()?.id === a.id ? 'bg-selected' : 'hover:bg-hover'"
+            [attr.aria-selected]="selected()?.id === a.id"
+            [attr.tabindex]="selected()?.id === a.id ? 0 : -1"
+            (click)="select(a.id)"
+          >
+            <gt-provider-mark [provider]="a.provider" [size]="22" />
+            <span class="flex min-w-0 flex-1 flex-col leading-tight">
+              <span class="truncate font-medium">{{ providerName(a) }}</span>
+              <span class="truncate text-[.88em] text-muted">{{ a.username }}</span>
+            </span>
+          </li>
+        }
+      </ul>
+      <div class="flex gap-0.5 rounded-b-lg border border-t-0 border-line bg-surface-2 p-1">
+        <button
+          type="button"
+          class="icon-btn"
+          [attr.aria-label]="'accounts.add' | t"
+          [title]="'accounts.add' | t"
+          (click)="add()"
+        >
+          <gt-icon name="plus" [size]="14" />
+        </button>
+        <button
+          type="button"
+          class="icon-btn disabled:cursor-default disabled:opacity-40"
+          [attr.aria-label]="'accounts.remove' | t"
+          [title]="'accounts.remove' | t"
+          [disabled]="!selected()"
+          (click)="remove()"
+        >
+          <gt-icon name="minus" [size]="14" />
+        </button>
+      </div>
+    </div>
+
+    @if (selected(); as a) {
+      <section class="min-w-0" [attr.aria-label]="a.username + '@' + a.host">
+        <header class="mb-3.5 flex items-center gap-3">
+          @if (a.avatarUrl && !avatarBroken()) {
+            <img
+              class="size-11 flex-none rounded-full border border-line object-cover"
+              [src]="a.avatarUrl"
+              alt=""
+              (error)="avatarBroken.set(true)"
+            />
+          } @else {
+            <span
+              class="grid size-11 flex-none place-items-center rounded-full bg-[hsl(var(--h)_45%_42%)] text-[15px] font-semibold text-white"
+              [style.--h]="hue(a)"
+              aria-hidden="true"
+            >
+              {{ initials(a) }}
+            </span>
+          }
+          <div class="min-w-0 flex-1">
+            <strong class="block truncate text-[1.1em]">{{ a.username }}</strong>
+            <a
+              class="inline-block max-w-full truncate text-accent-fg hover:underline"
+              [href]="link(a)"
+              [attr.aria-label]="'accounts.openServer' | t: { host: a.host }"
+              (click)="$event.preventDefault(); openServer(a)"
+            >
+              {{ link(a) }}
+            </a>
+          </div>
+        </header>
+
+        <div class="mb-3.5 flex gap-1 border-b border-line" role="tablist" (keydown)="onTabKey($event)">
+          @for (t of ['account', 'repos']; track t) {
+            <button
+              type="button"
+              role="tab"
+              class="-mb-px cursor-pointer border-0 border-b-2 bg-transparent px-3 py-1.5"
+              [id]="'acc-tab-' + t"
+              [class]="
+                detailTab() === t
+                  ? 'border-accent font-medium text-fg'
+                  : 'border-transparent text-muted hover:text-fg'
+              "
+              [attr.aria-selected]="detailTab() === t"
+              [attr.aria-controls]="'acc-panel-' + t"
+              [attr.tabindex]="detailTab() === t ? 0 : -1"
+              (click)="detailTab.set($any(t))"
+            >
+              {{ t === 'account' ? ('accounts.tabAccount' | t) : ('accounts.tabRepos' | t) }}
+            </button>
+          }
+        </div>
+
+        @if (detailTab() === 'account') {
+          <div id="acc-panel-account" role="tabpanel" aria-labelledby="acc-tab-account">
+            <dl class="m-0 grid grid-cols-[minmax(0,8.5rem)_1fr] items-center gap-x-3 gap-y-2.5">
+              <dt class="text-right text-muted">{{ 'accounts.serverType' | t }}</dt>
+              <dd class="m-0 flex items-center gap-2">
+                <gt-provider-mark [provider]="a.provider" [size]="16" />
+                {{ providerName(a) }}
+              </dd>
+              <dt class="text-right text-muted">{{ 'accounts.authType' | t }}</dt>
+              <dd class="m-0">{{ 'accounts.methods.' + methodOf(a) | t }}</dd>
+              <dt class="text-right text-muted">{{ 'accounts.username' | t }}</dt>
+              <dd class="m-0 break-all">{{ a.username }}</dd>
+              @if (a.sshKeyPath) {
+                <dt class="text-right text-muted">{{ 'accounts.keyPath' | t }}</dt>
+                <dd class="mono m-0 break-all">{{ a.sshKeyPath }}</dd>
+              }
+              <dt class="text-right text-muted">{{ 'accounts.statusLabel' | t }}</dt>
+              <dd class="m-0 flex flex-wrap items-center gap-2" aria-live="polite">
+                @if (status(); as st) {
+                  @if (st.tone === 'busy') {
+                    <span class="spinner" aria-hidden="true"></span>
+                  } @else {
+                    <span
+                      class="size-2.5 flex-none rounded-full"
+                      aria-hidden="true"
+                      [class]="
+                        st.tone === 'success'
+                          ? 'bg-success'
+                          : st.tone === 'danger'
+                            ? 'bg-danger'
+                            : st.tone === 'warning'
+                              ? 'bg-warning'
+                              : 'bg-faint'
+                      "
+                    ></span>
+                  }
+                  <span data-status [attr.data-tone]="st.tone">{{ st.key | t }}</span>
+                }
+                <button
+                  type="button"
+                  class="btn tiny"
+                  [disabled]="status()?.tone === 'busy'"
+                  (click)="check(a.id)"
+                >
+                  {{ 'accounts.checkAgain' | t }}
+                </button>
+              </dd>
+            </dl>
+            <div class="mt-5 ml-[calc(8.5rem+0.75rem)]">
+              <button type="button" class="btn" (click)="editCredential(a)">
+                <gt-icon name="edit" [size]="12" />
+                {{ updateKey(a) | t }}
+              </button>
+            </div>
+          </div>
+        } @else {
+          <div id="acc-panel-repos" role="tabpanel" aria-labelledby="acc-tab-repos">
+            @if (a.apiAccess) {
+              <p class="mb-3 text-muted">{{ 'accounts.reposDescription' | t }}</p>
+              <button type="button" class="btn" (click)="cloneFromThisAccount(a)">
+                <gt-icon name="download" [size]="12" />
+                {{ 'accounts.cloneFromAccount' | t }}
+              </button>
+            } @else {
+              <p class="muted">{{ 'accounts.noApiAccess' | t }}</p>
+            }
+          </div>
+        }
+      </section>
+    }
+  </div>
+}

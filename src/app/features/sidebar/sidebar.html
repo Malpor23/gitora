@@ -1,0 +1,353 @@
+@let s = store();
+@let st = s.status();
+<nav class="flex h-full flex-col border-r border-line bg-sidebar" [attr.aria-label]="s.name()">
+  <div
+    class="m-2 flex items-center gap-1.5 rounded-md border border-line bg-input px-2 text-faint focus-within:border-accent"
+  >
+    <gt-icon name="filter" [size]="13" />
+    <input
+      type="search"
+      class="min-w-0 flex-1 border-0 bg-transparent px-0 py-1.25 shadow-none"
+      [placeholder]="'sidebar.filter' | t"
+      [value]="query()"
+      (input)="query.set($any($event.target).value)"
+      spellcheck="false"
+    />
+  </div>
+
+  <div class="flex-1 overflow-auto pb-4">
+    <ul class="mb-1 border-b border-line pt-0.5 pb-2">
+      <li
+        class="flex h-7 cursor-default items-center gap-1.75 whitespace-nowrap pr-2.5 pl-3.5 text-fg [&_gt-icon]:text-muted"
+        [class]="s.view() === 'changes' ? 'bg-selected' : 'hover:bg-hover'"
+        (click)="showChanges()"
+      >
+        <gt-icon name="edit" [size]="15" />
+        <span class="min-w-0 flex-1 truncate">{{ 'sidebar.localChanges' | t }}</span>
+        @if (s.changeCount()) {
+          <span
+            class="grid h-4.5 min-w-5 place-items-center rounded-[9px] bg-accent px-1.5 text-[.78em] font-semibold text-on-accent tabular-nums">
+            {{ s.changeCount() }}
+          </span>
+        }
+      </li>
+      <li
+        class="flex h-7 cursor-default items-center gap-1.75 whitespace-nowrap pr-2.5 pl-3.5 text-fg [&_gt-icon]:text-muted"
+        [class]="
+          s.view() === 'history' && !s.filter().path && !s.filter().ref
+            ? 'bg-selected'
+            : 'hover:bg-hover'
+        "
+        (click)="showHistory()"
+      >
+        <gt-icon name="git-commit" [size]="15" />
+        <span class="min-w-0 flex-1 truncate">{{ 'sidebar.allCommits' | t }}</span>
+      </li>
+    </ul>
+
+    <!-- Ramas locales -->
+    <section>
+      <header
+        class="group/head mt-1 flex h-7 cursor-pointer items-center gap-1.5 px-2 text-[.86em] font-semibold text-muted select-none"
+        (click)="toggle('branches')"
+        (contextmenu)="sectionMenu($event, 'branches')"
+      >
+        <gt-icon [name]="isOpen('branches') ? 'chevron-down' : 'chevron-right'" [size]="13" />
+        <span>{{ 'sidebar.branches' | t }}</span>
+        <span class="flex-1 font-medium text-faint tabular-nums">{{
+          s.localBranches().length
+        }}</span>
+        <button
+          class="inline-flex cursor-pointer rounded-sm border-0 bg-transparent p-0.75 text-muted opacity-0 group-hover/head:opacity-100 hover:bg-hover hover:text-fg focus-visible:opacity-100"
+          (click)="$event.stopPropagation(); flows.createBranch(s)"
+          [title]="'commands.createBranch' | t"
+        >
+          <gt-icon name="plus" [size]="13" />
+        </button>
+      </header>
+      @if (isOpen('branches')) {
+        @if (st?.detached) {
+          <div
+            class="flex h-6.5 cursor-default items-center gap-1.75 whitespace-nowrap pr-2.5 pl-3.5 text-warning [&_gt-icon]:text-muted hover:bg-hover text-[.92em]"
+            [style.padding-left.px]="22"
+          >
+            <gt-icon name="git-commit" [size]="13" />
+            <span class="min-w-0 flex-1 truncate">{{'sidebar.detached' | t: { hash: st!.head } }}</span>
+          </div>
+        }
+        <ul>
+          @for (n of localTree(); track n.key) {
+            @if (n.folder) {
+              <li
+                class="flex h-6.5 cursor-default items-center gap-1.75 whitespace-nowrap pr-2.5 pl-3.5 text-fg [&_gt-icon]:text-muted hover:bg-hover"
+                [style.padding-left.px]="16 + n.depth * 14"
+                (click)="toggle(n.key)"
+              >
+                <gt-icon [name]="isOpen(n.key) ? 'chevron-down' : 'chevron-right'" [size]="12" />
+                <gt-icon name="folder" [size]="13" />
+                <span class="min-w-0 flex-1 truncate text-muted">{{ n.label }}</span>
+              </li>
+            } @else {
+              @let b = n.branch!;
+              <li
+                class="flex h-6.5 cursor-default items-center gap-1.75 whitespace-nowrap pr-2.5 pl-3.5 text-fg [&_gt-icon]:text-muted hover:bg-hover"
+                [style.padding-left.px]="22 + n.depth * 14"
+                (click)="showBranch(b)"
+                (dblclick)="!b.current && flows.checkout(s, b.name)"
+                (contextmenu)="branchMenu($event, b)"
+                [title]="b.subject"
+              >
+                <span
+                  class="size-2.25 flex-none rounded-full"
+                  [style.background]="'var(--lane-' + (laneOf().get(b.name) ?? 0) + ')'"
+                  [class]="
+                    b.current
+                      ? 'text-fg [box-shadow:0_0_0_2px_var(--sidebar-bg),0_0_0_3.5px_currentColor]'
+                      : ''
+                  "
+                ></span>
+                <span class="min-w-0 flex-1 truncate" [class.font-semibold]="b.current">
+                  {{ n.label }}
+                </span>
+                @if (b.upstreamGone) {
+                  <span class="text-[.85em] text-warning" [title]="'sidebar.upstreamGone' | t">⊘</span>
+                }
+                @if (b.ahead) {
+                  <span
+                    class="text-[.78em] text-accent-fg tabular-nums"
+                    [title]="'sidebar.ahead' | t: { n: b.ahead }"
+                    >↑{{ b.ahead }}</span
+                  >
+                }
+                @if (b.behind) {
+                  <span
+                    class="text-[.78em] text-muted tabular-nums"
+                    [title]="'sidebar.behind' | t: { n: b.behind }"
+                    >↓{{ b.behind }}</span
+                  >
+                }
+              </li>
+            }
+          }
+        </ul>
+      }
+    </section>
+
+    <!-- Remotos -->
+    <section>
+      <header
+        class="group/head mt-1 flex h-7 cursor-pointer items-center gap-1.5 px-2 text-[.86em] font-semibold text-muted select-none"
+        (click)="toggle('remotes')"
+        (contextmenu)="sectionMenu($event, 'remotes')"
+      >
+        <gt-icon [name]="isOpen('remotes') ? 'chevron-down' : 'chevron-right'" [size]="13" />
+        <span>{{ 'sidebar.remotes' | t }}</span>
+        <span class="flex-1 font-medium text-faint tabular-nums">{{ s.remotes().length }}</span>
+        <button
+          class="inline-flex cursor-pointer rounded-sm border-0 bg-transparent p-0.75 text-muted opacity-0 group-hover/head:opacity-100 hover:bg-hover hover:text-fg focus-visible:opacity-100"
+          (click)="$event.stopPropagation(); flows.addRemote(s)"
+          [title]="'commands.addRemote' | t"
+        >
+          <gt-icon name="plus" [size]="13" />
+        </button>
+      </header>
+      @if (isOpen('remotes')) {
+        <ul>
+          @for (g of remoteGroups(); track g.remote.name) {
+            @let key = 'remote:' + g.remote.name;
+            <li
+              class="flex h-6.5 cursor-default items-center gap-1.75 whitespace-nowrap pr-2.5 pl-3.5 text-fg [&_gt-icon]:text-muted hover:bg-hover"
+              [style.padding-left.px]="16"
+              (click)="toggle(key)"
+              (contextmenu)="remoteMenu($event, g.remote.name)"
+              [title]="g.remote.fetchUrl"
+            >
+              <gt-icon [name]="isOpen(key) ? 'chevron-down' : 'chevron-right'" [size]="12" />
+              @if (providerOf(g.remote.fetchUrl); as prov) {
+                <gt-provider-mark [provider]="prov" [size]="14" />
+              } @else {
+                <gt-icon name="cloud" [size]="14" />
+              }
+              <span class="min-w-0 flex-1 truncate text-muted">{{ g.remote.name }}</span>
+            </li>
+            @if (isOpen(key)) {
+              @for (n of g.nodes; track n.key) {
+                @if (n.folder) {
+                  <li
+                    class="flex h-6.5 cursor-default items-center gap-1.75 whitespace-nowrap pr-2.5 pl-3.5 text-fg [&_gt-icon]:text-muted hover:bg-hover"
+                    [style.padding-left.px]="16 + n.depth * 14"
+                    (click)="toggle(n.key)"
+                  >
+                    <gt-icon
+                      [name]="isOpen(n.key) ? 'chevron-down' : 'chevron-right'"
+                      [size]="12"
+                    />
+                    <gt-icon name="folder" [size]="13" />
+                    <span class="min-w-0 flex-1 truncate text-muted">{{ n.label }}</span>
+                  </li>
+                } @else {
+                  @let b = n.branch!;
+                  <li
+                    class="flex h-6.5 cursor-default items-center gap-1.75 whitespace-nowrap pr-2.5 pl-3.5 text-fg [&_gt-icon]:text-muted hover:bg-hover"
+                    [style.padding-left.px]="22 + n.depth * 14"
+                    (click)="showBranch(b)"
+                    (dblclick)="flows.checkout(s, b.name)"
+                    (contextmenu)="branchMenu($event, b)"
+                    [title]="b.subject"
+                  >
+                    <span
+                      class="box-border size-2.25 flex-none rounded-full border-2 bg-transparent"
+                      [style.border-color]="'var(--lane-' + (laneOf().get(b.name) ?? 0) + ')'"
+                    ></span>
+                    <span class="min-w-0 flex-1 truncate">{{ n.label }}</span>
+                  </li>
+                }
+              }
+            }
+          }
+        </ul>
+      }
+    </section>
+
+    <!-- Tags -->
+    <section>
+      <header
+        class="group/head mt-1 flex h-7 cursor-pointer items-center gap-1.5 px-2 text-[.86em] font-semibold text-muted select-none"
+        (click)="toggle('tags')"
+        (contextmenu)="sectionMenu($event, 'tags')"
+      >
+        <gt-icon [name]="isOpen('tags') ? 'chevron-down' : 'chevron-right'" [size]="13" />
+        <span>{{ 'sidebar.tags' | t }}</span>
+        <span class="flex-1 font-medium text-faint tabular-nums">{{ s.tags().length }}</span>
+        <button
+          class="inline-flex cursor-pointer rounded-sm border-0 bg-transparent p-0.75 text-muted opacity-0 group-hover/head:opacity-100 hover:bg-hover hover:text-fg focus-visible:opacity-100"
+          (click)="$event.stopPropagation(); flows.createTag(s)"
+          [title]="'commands.createTag' | t"
+        >
+          <gt-icon name="plus" [size]="13" />
+        </button>
+      </header>
+      @if (isOpen('tags')) {
+        <ul>
+          @for (tag of tags(); track tag.name) {
+            <li
+              class="flex h-6.5 cursor-default items-center gap-1.75 whitespace-nowrap pr-2.5 pl-3.5 text-fg [&_gt-icon]:text-muted hover:bg-hover"
+              [style.padding-left.px]="22"
+              (click)="s.selectCommit(tag.hash)"
+              (contextmenu)="tagMenu($event, tag)"
+              [title]="tag.message || tag.name"
+            >
+              <gt-icon name="tag" [size]="13" />
+              <span class="min-w-0 flex-1 truncate">{{ tag.name }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <!-- Stashes -->
+    <section>
+      <header
+        class="group/head mt-1 flex h-7 cursor-pointer items-center gap-1.5 px-2 text-[.86em] font-semibold text-muted select-none"
+        (click)="toggle('stashes')"
+        (contextmenu)="sectionMenu($event, 'stashes')"
+      >
+        <gt-icon [name]="isOpen('stashes') ? 'chevron-down' : 'chevron-right'" [size]="13" />
+        <span>{{ 'sidebar.stashes' | t }}</span>
+        <span class="flex-1 font-medium text-faint tabular-nums">{{ s.stashes().length }}</span>
+        <button
+          class="inline-flex cursor-pointer rounded-sm border-0 bg-transparent p-0.75 text-muted opacity-0 group-hover/head:opacity-100 hover:bg-hover hover:text-fg focus-visible:opacity-100"
+          (click)="$event.stopPropagation(); flows.stash(s)"
+          [title]="'commands.stashSave' | t"
+        >
+          <gt-icon name="plus" [size]="13" />
+        </button>
+      </header>
+      @if (isOpen('stashes')) {
+        <ul>
+          @for (st2 of stashes(); track st2.hash) {
+            <li
+              class="flex h-6.5 cursor-default items-center gap-1.75 whitespace-nowrap pr-2.5 pl-3.5 text-fg [&_gt-icon]:text-muted hover:bg-hover"
+              [style.padding-left.px]="22"
+              (click)="s.selectCommit(st2.hash)"
+              (dblclick)="flows.stashApply(s, st2.index)"
+              (contextmenu)="stashMenu($event, st2)"
+              [title]="st2.ref + ' — ' + st2.message"
+            >
+              <gt-icon name="archive" [size]="13" />
+              <span class="min-w-0 flex-1 truncate">{{ st2.message || st2.ref }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    @if (s.submodules().length) {
+      <section>
+        <header
+          class="group/head mt-1 flex h-7 cursor-pointer items-center gap-1.5 px-2 text-[.86em] font-semibold text-muted select-none"
+          (click)="toggle('submodules')"
+          (contextmenu)="sectionMenu($event, 'submodules')"
+        >
+          <gt-icon [name]="isOpen('submodules') ? 'chevron-down' : 'chevron-right'" [size]="13" />
+          <span>{{ 'sidebar.submodules' | t }}</span>
+          <span class="flex-1 font-medium text-faint tabular-nums">{{ s.submodules().length }}</span>
+        </header>
+        @if (isOpen('submodules')) {
+          <ul>
+            @for (sm of s.submodules(); track sm.path) {
+              <li
+                class="flex h-6.5 cursor-default items-center gap-1.75 whitespace-nowrap pr-2.5 pl-3.5 text-fg [&_gt-icon]:text-muted hover:bg-hover"
+                [style.padding-left.px]="22"
+                (dblclick)="ws.open(s.path() + '/' + sm.path)"
+                (contextmenu)="submoduleMenu($event, sm)"
+                [title]="sm.hash + ' ' + sm.describe"
+              >
+                <gt-icon name="box" [size]="13" />
+                <span class="min-w-0 flex-1 truncate">{{ sm.path }}</span>
+                @if (sm.status !== 'ok') {
+                  <span
+                    class="font-mono text-[.8em]"
+                    [class]="sm.status === 'conflict' ? 'text-danger' : 'text-warning'"
+                  >
+                    {{ sm.status === 'modified' ? 'M' : sm.status === 'uninitialized' ? '−' : '!' }}
+                </span>
+                }
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+
+    @if (s.worktrees().length > 1) {
+      <section>
+        <header
+          class="group/head mt-1 flex h-7 cursor-pointer items-center gap-1.5 px-2 text-[.86em] font-semibold text-muted select-none"
+          (click)="toggle('worktrees')"
+          (contextmenu)="sectionMenu($event, 'worktrees')"
+        >
+          <gt-icon [name]="isOpen('worktrees') ? 'chevron-down' : 'chevron-right'" [size]="13" />
+          <span>{{ 'sidebar.worktrees' | t }}</span>
+          <span class="flex-1 font-medium text-faint tabular-nums">{{ s.worktrees().length }}</span>
+        </header>
+        @if (isOpen('worktrees')) {
+          <ul>
+            @for (w of s.worktrees(); track w.path) {
+              <li
+                class="flex h-6.5 cursor-default items-center gap-1.75 whitespace-nowrap pr-2.5 pl-3.5 text-fg [&_gt-icon]:text-muted hover:bg-hover"
+                [style.padding-left.px]="22"
+                (dblclick)="ws.open(w.path)"
+                (contextmenu)="worktreeMenu($event, w)"
+                [title]="w.path"
+              >
+                <gt-icon name="layers" [size]="13" />
+                <span class="min-w-0 flex-1 truncate">{{ w.branch ?? w.head.slice(0, 8) }}</span>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+  </div>
+</nav>

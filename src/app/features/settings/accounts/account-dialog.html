@@ -1,0 +1,246 @@
+<form class="dialog" (submit)="$event.preventDefault(); submit()">
+  <header class="dialog-head">
+    <h2>{{ title() }}</h2>
+    <button type="button" class="icon-btn" (click)="ref.close()" [attr.aria-label]="'common.close' | t">
+      <gt-icon name="x" />
+    </button>
+  </header>
+
+  @if (step() === 'pick') {
+    <div class="dialog-body">
+      <p class="mb-3 text-muted" id="acc-pick-title">{{ 'accounts.choosePlatform' | t }}</p>
+      <div class="grid grid-cols-3 gap-2.5" role="group" aria-labelledby="acc-pick-title">
+        @for (t of tiles; track t.id) {
+          <button
+            type="button"
+            data-tile
+            class="flex cursor-pointer flex-col items-center gap-2 rounded-lg border border-line bg-transparent px-2 py-4 text-fg hover:border-faint hover:bg-hover focus-visible:outline-2 focus-visible:outline-accent"
+            [attr.data-tile-id]="t.id"
+            (click)="pickTile(t)"
+          >
+            <gt-provider-mark [provider]="t.provider" [size]="32" />
+            <span class="text-center">{{ 'accounts.tiles.' + t.id | t }}</span>
+          </button>
+        }
+      </div>
+    </div>
+    <footer class="dialog-foot">
+      <button type="button" class="btn" (click)="ref.close()">{{ 'common.cancel' | t }}</button>
+    </footer>
+  } @else if (device(); as d) {
+    <div class="dialog-body" [attr.aria-label]="'accounts.oauthTitle' | t">
+      <h3 class="mb-2 font-bold">{{ 'accounts.oauthTitle' | t }}</h3>
+      <p class="hint">{{ 'accounts.oauthInstructions' | t }}</p>
+      <p class="muted mt-3 mb-1">{{ 'accounts.userCode' | t }}</p>
+      <div class="mb-3 flex flex-wrap items-center gap-3">
+        <output class="mono text-[2em] font-bold tracking-[.15em]">{{ d.userCode }}</output>
+        <button type="button" class="btn small" (click)="copyCode()">
+          <gt-icon name="copy" [size]="12" />
+          {{ 'accounts.copyCode' | t }}
+        </button>
+      </div>
+      <p class="mb-3">
+        <span class="muted">{{ 'accounts.verificationUrl' | t }}: </span>
+        <span class="mono break-all">{{ d.verificationUri }}</span>
+      </p>
+      <div class="mb-3 flex flex-wrap items-center gap-2">
+        <button type="button" class="btn primary" (click)="openBrowser()">
+          <gt-icon name="external" [size]="12" />
+          {{ 'accounts.openBrowser' | t }}
+        </button>
+        <span class="muted">{{ 'accounts.expiresIn' | t: { time: countdown() } }}</span>
+      </div>
+      <p class="flex items-center gap-2" role="status" aria-live="polite">
+        <span class="spinner" aria-hidden="true"></span>
+        {{ 'accounts.waiting' | t }}
+      </p>
+    </div>
+    <footer class="dialog-foot">
+      <button type="button" class="btn" (click)="cancelOAuth()">{{ 'common.cancel' | t }}</button>
+    </footer>
+  } @else {
+    <div class="dialog-body">
+      @if (editing()) {
+        <p class="hint mb-3.5">{{ 'accounts.editHint' | t }}</p>
+      } @else {
+        <p class="mb-3.5 flex items-center gap-2">
+          <gt-provider-mark [provider]="provider()" />
+          <strong>{{ 'accounts.tiles.' + tile()!.id | t }}</strong>
+        </p>
+      }
+
+      <fieldset class="mb-4 border-0 p-0">
+        <legend class="mb-1.5">{{ 'accounts.method' | t }}</legend>
+        <div class="flex flex-wrap gap-1.5" role="radiogroup">
+          @for (m of methods(); track m) {
+            <label
+              class="inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-3 py-1.5 focus-within:outline-2 focus-within:outline-accent"
+              [class]="
+                method() === m
+                  ? 'border-accent bg-accent-soft'
+                  : 'border-line bg-transparent hover:border-faint'
+              "
+            >
+              <input
+                type="radio"
+                name="auth-method"
+                class="m-0"
+                [value]="m"
+                [checked]="method() === m"
+                (change)="selectMethod(m)"
+              />
+              {{ 'accounts.methods.' + m | t }}
+            </label>
+          }
+        </div>
+      </fieldset>
+
+      @if (provider() === 'bitbucket' && method() === 'token') {
+        <p class="hint mb-3">{{ 'accounts.bitbucketHint' | t }}</p>
+      }
+      @if (method() === 'password') {
+        <p class="hint mb-3">{{ 'accounts.passwordHint' | t }}</p>
+      }
+      @if (method() === 'ssh') {
+        <p class="hint mb-3">{{ 'accounts.sshHint' | t }}</p>
+      }
+      @if (method() === 'oauth') {
+        <p class="hint mb-3">{{ 'accounts.oauthHint' | t }}</p>
+      }
+
+      @if (fields().server) {
+        <div class="mb-4">
+          <label for="a-server">
+            {{ 'accounts.server' | t }}
+            @if (!serverRequired()) {
+              ({{ 'common.optional' | t }})
+            }
+          </label>
+          <input
+            id="a-server"
+            class="mono"
+            type="text"
+            name="server"
+            [required]="serverRequired()"
+            [readOnly]="!!editing()"
+            [ngModel]="server()"
+            (ngModelChange)="server.set($event)"
+            [placeholder]="serverPlaceholder()"
+          />
+          <p class="hint">
+            {{ serverRequired() ? ('accounts.serverRequiredHint' | t) : ('accounts.serverHint' | t) }}
+          </p>
+        </div>
+      }
+
+      @if (fields().username) {
+        <div class="mb-4">
+          <label for="a-user">
+            {{ method() === 'ssh' ? ('accounts.sshLabel' | t) : ('accounts.username' | t) }}
+          </label>
+          <input
+            id="a-user"
+            type="text"
+            name="user"
+            autocomplete="off"
+            [required]="fields().usernameRequired"
+            [readOnly]="!!editing()"
+            [ngModel]="username()"
+            (ngModelChange)="username.set($event)"
+          />
+        </div>
+      }
+
+      @if (fields().secret) {
+        <div class="mb-4">
+          <label for="a-secret">
+            {{ method() === 'password' ? ('accounts.password' | t) : ('accounts.token' | t) }}
+            @if (method() === 'token') {
+              <button
+                type="button"
+                class="ml-1.5 inline-flex cursor-pointer items-center gap-0.75 border-0 bg-transparent text-[.9em] text-accent-fg"
+                (click)="tokenHelp()"
+              >
+                {{ 'accounts.tokenHelp' | t }}
+                <gt-icon name="external" [size]="11" />
+              </button>
+            }
+          </label>
+          <input
+            id="a-secret"
+            class="mono"
+            type="password"
+            name="secret"
+            autocomplete="off"
+            required
+            [ngModel]="secret()"
+            (ngModelChange)="secret.set($event)"
+          />
+        </div>
+      }
+
+      @if (fields().keyPath) {
+        <div class="mb-4">
+          <label for="a-key">{{ 'accounts.keyPath' | t }}</label>
+          <div class="flex gap-1.5">
+            <input
+              id="a-key"
+              class="mono"
+              type="text"
+              name="keyPath"
+              autocomplete="off"
+              required
+              [ngModel]="keyPath()"
+              (ngModelChange)="keyPath.set($event)"
+            />
+            <button type="button" class="btn" (click)="browseKey()">
+              {{ 'common.browse' | t }}
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (fields().clientId) {
+        <div class="mb-4">
+          <label for="a-client">{{ 'accounts.clientId' | t }}</label>
+          <input
+            id="a-client"
+            class="mono"
+            type="text"
+            name="clientId"
+            autocomplete="off"
+            required
+            [ngModel]="clientId()"
+            (ngModelChange)="clientId.set($event)"
+          />
+        </div>
+      }
+
+      @if (error()) {
+        <p class="error-text" role="alert">{{ error() }}</p>
+      }
+    </div>
+    <footer class="dialog-foot">
+      @if (!editing()) {
+        <button type="button" class="btn mr-auto" [disabled]="adding()" (click)="back()">
+          {{ 'accounts.back' | t }}
+        </button>
+      }
+      <button type="button" class="btn" (click)="ref.close()">{{ 'common.cancel' | t }}</button>
+      <button class="btn primary" type="submit" [disabled]="adding() || !submittable()">
+        @if (adding()) {
+          <span class="spinner" aria-hidden="true"></span>
+        }
+        {{
+          editing()
+            ? ('accounts.save' | t)
+            : method() === 'oauth'
+              ? ('accounts.submitOauth' | t)
+              : method() === 'ssh'
+                ? ('accounts.submitSsh' | t)
+                : ('accounts.add' | t)
+        }}
+      </button>
+    </footer>
+  }
+</form>

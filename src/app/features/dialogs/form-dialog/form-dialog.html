@@ -1,0 +1,158 @@
+<form class="dialog" (submit)="$event.preventDefault(); submit()">
+  <header class="dialog-head">
+    <h2>{{ data.title }}</h2>
+    <button
+      type="button"
+      class="icon-btn"
+      (click)="ref.close()"
+      [attr.aria-label]="'common.close' | t"
+    >
+      <gt-icon name="x" />
+    </button>
+  </header>
+  <div class="dialog-body">
+    @if (data.message) {
+      <p
+        class="mb-3.5 max-h-70 overflow-auto leading-normal whitespace-pre-wrap text-fg"
+        [class]="data.danger ? 'border-l-[3px] border-danger pl-2.5' : ''"
+      >
+        {{ data.message }}
+      </p>
+    }
+    @for (f of visibleFields(); track f.key) {
+      <div [class]="f.type === 'checkbox' ? 'mb-2' : 'mb-3.5'">
+        @switch (f.type) {
+          @case ('checkbox') {
+            <label class="check flex cursor-pointer items-start gap-2 py-1 leading-[1.35]">
+              <input
+                type="checkbox"
+                class="mt-0.5"
+                [ngModel]="values()[f.key]"
+                (ngModelChange)="set(f.key, $event)"
+                [name]="f.key"
+              />
+              <span>{{ f.label }}</span>
+            </label>
+          }
+          @case ('radio') {
+            <fieldset class="m-0 border-0 p-0">
+              <legend class="mb-1.5 p-0 text-[.92em] text-muted">{{ f.label }}</legend>
+              @for (o of options(f); track o.value) {
+                <label class="radio flex cursor-pointer items-start gap-2 py-1 leading-[1.35]">
+                  <input
+                    type="radio"
+                    class="mt-0.5"
+                    [name]="f.key"
+                    [value]="o.value"
+                    [ngModel]="values()[f.key]"
+                    (ngModelChange)="set(f.key, $event)"
+                  />
+                  <span>{{ o.label }}</span>
+                </label>
+              }
+            </fieldset>
+          }
+          @case ('select') {
+            <label [for]="id(f)">{{ f.label }}</label>
+            <select
+              [id]="id(f)"
+              [name]="f.key"
+              [ngModel]="values()[f.key]"
+              (ngModelChange)="set(f.key, $event)"
+            >
+              @for (o of options(f); track o.value) {
+                <option [value]="o.value">{{ o.label }}{{ o.hint ? '  —  ' + o.hint : '' }}</option>
+              }
+            </select>
+          }
+          @case ('textarea') {
+            <label [for]="id(f)">{{ f.label }}</label>
+            <textarea
+              [id]="id(f)"
+              rows="4"
+              [name]="f.key"
+              [class.mono]="f.mono"
+              [placeholder]="f.placeholder ?? ''"
+              [ngModel]="values()[f.key]"
+              (ngModelChange)="set(f.key, $event)"
+            ></textarea>
+          }
+          @case ('path') {
+            <label [for]="id(f)">{{ f.label }}</label>
+            <div class="flex gap-2">
+              <input
+                [id]="id(f)"
+                type="text"
+                class="mono flex-1"
+                [name]="f.key"
+                [ngModel]="values()[f.key]"
+                (ngModelChange)="set(f.key, $event)"
+              />
+              <button type="button" class="btn" (click)="browse(f)">
+                {{ 'common.browse' | t }}
+              </button>
+            </div>
+          }
+          @default {
+            <label [for]="id(f)">{{ f.label }}</label>
+            <input
+              [id]="id(f)"
+              [type]="f.type === 'number' ? 'number' : 'text'"
+              [name]="f.key"
+              [class.mono]="f.mono"
+              [placeholder]="f.placeholder ?? ''"
+              [attr.list]="f.type === 'combo' ? id(f) + '-list' : null"
+              [readOnly]="!!f.readonly"
+              [attr.aria-readonly]="f.readonly ? 'true' : null"
+              [class.text-muted]="f.readonly"
+              [attr.data-autofocus]="f.autofocus ? '' : null"
+              autocomplete="off"
+              spellcheck="false"
+              [ngModel]="values()[f.key]"
+              (ngModelChange)="set(f.key, $event)"
+            />
+            @if (f.type === 'combo') {
+              <datalist [id]="id(f) + '-list'">
+                @for (o of options(f); track o.value) {
+                  <option [value]="o.value">{{ o.label }}</option>
+                }
+              </datalist>
+            }
+          }
+        }
+        @if (f.hint) {
+          <p class="hint">{{ f.hint }}</p>
+        }
+        @if (touched() && errors()[f.key]; as err) {
+          <p class="error-text">{{ err }}</p>
+        }
+        @if (f.warnWhen?.(values()); as warn) {
+          <p class="mt-1.5 mb-0 flex items-center gap-1.5 text-[.92em] text-warning">
+            <gt-icon name="alert" [size]="14" />
+            {{ warn }}
+          </p>
+        }
+      </div>
+    }
+    @if (runError()) {
+      <pre
+        class="mt-1 mb-0 max-h-50 overflow-auto rounded-md bg-danger-bg px-3 py-2.5 font-mono text-[.88em] whitespace-pre-wrap text-danger"
+        >{{ runError() }}</pre>
+    }
+  </div>
+  <footer class="dialog-foot">
+    <button type="button" class="btn ghost" (click)="ref.close()">{{ 'common.cancel' | t }}</button>
+    <button
+      type="submit"
+      class="btn"
+      [class.primary]="!data.danger"
+      [class.danger]="data.danger"
+      [disabled]="running()"
+    >
+      @if (running()) {
+        <span class="spinner"></span>
+      }
+      {{ data.submitLabel ?? ('common.ok' | t) }}
+    </button>
+  </footer>
+</form>

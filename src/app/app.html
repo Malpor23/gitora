@@ -1,0 +1,401 @@
+@if (bridgeMissing) {
+  <div class="grid h-screen place-items-center text-muted">{{ 'app.noBridge' | t }}</div>
+} @else if (bootError(); as err) {
+  <div class="grid h-screen place-items-center p-6" role="alert">
+    <div class="max-w-130 text-center">
+      <p class="m-0 mb-2 font-semibold text-danger">{{ 'app.bootError' | t }}</p>
+      <p class="m-0 text-muted">{{ err }}</p>
+    </div>
+  </div>
+} @else {
+  <div class="flex h-screen flex-col bg-bg">
+    <header
+      class="flex h-10 flex-none items-stretch border-b border-line bg-chrome pr-[calc(100vw-env(titlebar-area-x,0px)-env(titlebar-area-width,100vw))] [-webkit-app-region:drag] [app-region:drag]"
+      [class.pl-19]="isMac()"
+    >
+      <div
+        class="w-11 flex-none place-items-center text-accent-fg"
+        [class.grid]="!isMac()"
+        [class.hidden]="isMac()"
+        aria-hidden="true"
+      >
+        <gt-icon name="git-merge" [size]="16" />
+      </div>
+      <div
+        class="flex min-w-0 items-end gap-0.5 overflow-x-auto pt-1.5 scrollbar-none"
+        role="tablist"
+      >
+        @for (tab of ws.tabs(); track tab.path()) {
+          @let active = tab === store() && !ws.showWelcome();
+          <div
+            role="tab"
+            class="group/tab relative flex h-8.5 max-w-55 cursor-default items-center gap-1.5 rounded-t-lg pr-1.5 pl-3.5 [-webkit-app-region:no-drag] [app-region:no-drag]"
+            [class]="
+              active
+                ? '-mb-px border border-line border-b-bg bg-bg text-fg shadow-[0_1px_0_var(--bg)]'
+                : 'text-muted hover:bg-hover hover:text-fg'
+            "
+            [attr.aria-selected]="tab === store()"
+            (click)="ws.activate(tab.path())"
+            (auxclick)="closeOnMiddleClick($event, tab.path())"
+            (contextmenu)="tabMenu($event, tab.path())"
+            [title]="tab.path()"
+          >
+            <span class="truncate font-medium">{{ tab.name() }}</span>
+            @if (tab.changeCount()) {
+              <span class="size-1.5 flex-none rounded-full bg-st-modified"></span>
+            }
+            <button
+              class="inline-flex cursor-pointer rounded-sm border-0 bg-transparent p-0.75 text-muted hover:bg-line hover:text-fg [-webkit-app-region:no-drag] [app-region:no-drag]"
+              [class]="active ? 'opacity-100' : 'opacity-0 group-hover/tab:opacity-100'"
+              (click)="$event.stopPropagation(); ws.close(tab.path())"
+              [attr.aria-label]="'titlebar.closeTab' | t"
+            >
+              <gt-icon name="x" [size]="12" />
+            </button>
+          </div>
+        }
+        <button
+          class="mx-1.5 inline-flex cursor-pointer self-center rounded-md border-0 bg-transparent p-1.25 text-muted hover:bg-hover hover:text-fg [-webkit-app-region:no-drag] [app-region:no-drag]"
+          (click)="ws.showWelcome.set(true)"
+          [title]="'titlebar.newTab' | t"
+        >
+          <gt-icon name="plus" [size]="15" />
+        </button>
+      </div>
+      <div class="flex-1"></div>
+    </header>
+
+    @if (store(); as s) {
+      @if (!ws.showWelcome()) {
+        <!-- Barra de herramientas del repositorio -->
+        @let tbBase =
+          'relative flex cursor-pointer items-center rounded-md border-0 [font:inherit] disabled:cursor-default disabled:opacity-40 [&_gt-icon]:text-icon [&:hover:not(:disabled)]:bg-hover [&:hover:not(:disabled)_gt-icon]:text-fg';
+        @let tbCol =
+          tbBase +
+          ' h-11 min-w-14 flex-col justify-center gap-0.5 bg-transparent px-2 text-[.8em] text-fg';
+        @let tbIcon =
+          tbBase +
+          ' h-11 min-w-9 flex-col justify-center gap-0.5 bg-transparent px-2 text-[.8em] text-fg';
+        @let tbChev =
+          tbBase +
+          ' -ml-0.5 h-11 w-4 justify-center bg-transparent px-0 text-fg [&_gt-icon]:text-icon';
+        @let tbWide =
+          tbBase +
+          ' h-[30px] min-w-[220px] justify-start gap-2 border border-line bg-input px-2.5 text-[.9em] text-muted';
+        <nav
+          class="flex h-13 flex-none items-center gap-1 border-b border-line bg-bg px-2.5"
+          [attr.aria-label]="s.name()"
+        >
+          <div class="mr-1 flex gap-px border-r border-line pr-2">
+            <button
+              [class]="tbCol"
+              (click)="flows.quickFetch(s)"
+              [disabled]="!s.remotes().length"
+              title="Fetch (Ctrl+Shift+F)"
+            >
+              <gt-icon name="fetch" [size]="18" />
+              <span>{{ 'toolbar.fetch' | t }}</span>
+            </button>
+            <button
+              [class]="tbChev"
+              (click)="openToolbarMenu($event, 'fetch')"
+              [disabled]="!s.remotes().length"
+              aria-haspopup="menu"
+              [attr.aria-label]="'toolbar.moreOptions' | t"
+            >
+              <gt-icon name="chevron-down" [size]="12" />
+            </button>
+            <button
+              [class]="tbCol"
+              (click)="flows.quickPull(s)"
+              (contextmenu)="$event.preventDefault(); flows.pull(s)"
+              [disabled]="!s.remotes().length"
+              title="Pull (Ctrl+Shift+L)"
+            >
+              <gt-icon name="pull" [size]="18" />
+              <span>{{ 'toolbar.pull' | t }}</span>
+              @if (s.status()?.behind) {
+                <span
+                  class="absolute top-0.75 right-2 grid h-4 min-w-4 place-items-center rounded-lg bg-accent px-1 text-[10px] font-semibold text-on-accent"
+                >
+                  {{ s.status()!.behind }}
+                </span>
+              }
+            </button>
+            <button
+              [class]="tbChev"
+              (click)="openToolbarMenu($event, 'pull')"
+              [disabled]="!s.remotes().length"
+              aria-haspopup="menu"
+              [attr.aria-label]="'toolbar.moreOptions' | t"
+            >
+              <gt-icon name="chevron-down" [size]="12" />
+            </button>
+            <button
+              [class]="tbCol"
+              (click)="flows.quickPush(s)"
+              (contextmenu)="$event.preventDefault(); flows.push(s)"
+              [disabled]="!s.remotes().length"
+              title="Push (Ctrl+Shift+K)"
+            >
+              <gt-icon name="push" [size]="18" />
+              <span>{{ 'toolbar.push' | t }}</span>
+              @if (s.status()?.ahead) {
+                <span
+                  class="absolute top-0.75 right-2 grid h-4 min-w-4 place-items-center rounded-lg bg-accent px-1 text-[10px] font-semibold text-on-accent"
+                >
+                  {{ s.status()!.ahead }}
+                </span>
+              }
+            </button>
+            <button
+              [class]="tbChev"
+              (click)="openToolbarMenu($event, 'push')"
+              [disabled]="!s.remotes().length"
+              aria-haspopup="menu"
+              [attr.aria-label]="'toolbar.moreOptions' | t"
+            >
+              <gt-icon name="chevron-down" [size]="12" />
+            </button>
+          </div>
+          <div class="mr-1 flex gap-px border-r border-line pr-2">
+            <button [class]="tbCol" (click)="flows.createBranch(s)" title="Ctrl+Shift+B">
+              <gt-icon name="git-branch" [size]="18" />
+              <span>{{ 'toolbar.branch' | t }}</span>
+            </button>
+            <button
+              [class]="tbChev"
+              (click)="openToolbarMenu($event, 'branch')"
+              aria-haspopup="menu"
+              [attr.aria-label]="'toolbar.moreOptions' | t"
+            >
+              <gt-icon name="chevron-down" [size]="12" />
+            </button>
+            <button [class]="tbCol" (click)="flows.merge(s)" title="Ctrl+Shift+M">
+              <gt-icon name="git-merge" [size]="18" />
+              <span>{{ 'toolbar.merge' | t }}</span>
+            </button>
+            <button [class]="tbCol" (click)="flows.rebase(s)">
+              <gt-icon name="git-rebase" [size]="18" />
+              <span>{{ 'toolbar.rebase' | t }}</span>
+            </button>
+            <button
+              [class]="tbChev"
+              (click)="openToolbarMenu($event, 'rebase')"
+              aria-haspopup="menu"
+              [attr.aria-label]="'toolbar.moreOptions' | t"
+            >
+              <gt-icon name="chevron-down" [size]="12" />
+            </button>
+          </div>
+          <div class="mr-1 flex gap-px border-r border-line pr-2">
+            <button
+              [class]="tbCol"
+              (click)="flows.stash(s)"
+              [disabled]="!s.changeCount()"
+              title="Ctrl+Shift+S"
+            >
+              <gt-icon name="archive" [size]="18" />
+              <span>{{ 'toolbar.stash' | t }}</span>
+            </button>
+            <button [class]="tbCol" (click)="flows.stashPop(s)" [disabled]="!s.stashes().length">
+              <gt-icon name="unarchive" [size]="18" />
+              <span>{{ 'toolbar.pop' | t }}</span>
+            </button>
+            <button
+              [class]="tbChev"
+              (click)="openToolbarMenu($event, 'stash')"
+              aria-haspopup="menu"
+              [attr.aria-label]="'toolbar.moreOptions' | t"
+            >
+              <gt-icon name="chevron-down" [size]="12" />
+            </button>
+          </div>
+          <div class="mr-1 flex gap-px border-r border-line pr-2">
+            <button [class]="tbCol" (click)="openTerminal(s.path())" title="Ctrl+Alt+T">
+              <gt-icon name="terminal" [size]="18" />
+              <span>{{ 'toolbar.terminal' | t }}</span>
+            </button>
+            <button [class]="tbCol" (click)="showInFolder(s.path())">
+              <gt-icon name="folder" [size]="18" />
+              <span>{{ 'toolbar.explorer' | t }}</span>
+            </button>
+            <button
+              [class]="tbCol"
+              (click)="openToolbarMenu($event, 'repository')"
+              aria-haspopup="menu"
+            >
+              <gt-icon name="sliders" [size]="18" />
+              <span class="inline-flex items-center gap-0.5"
+                >{{ 'toolbar.repository' | t }}<gt-icon name="chevron-down" [size]="10"
+              /></span>
+            </button>
+          </div>
+          <div class="flex-1"></div>
+          <button [class]="tbWide" (click)="openPalette()" title="Ctrl+Shift+P">
+            <gt-icon name="search" [size]="16" />
+            <span class="flex-1 text-left">{{ 'toolbar.commands' | t }}</span
+            ><kbd class="font-mono text-[.8em] text-faint">Ctrl+Shift+P</kbd>
+          </button>
+          <button [class]="tbIcon" (click)="flows.openSettings()" [title]="'toolbar.settings' | t">
+            <gt-icon name="settings" [size]="18" />
+          </button>
+        </nav>
+
+        @if (s.operation() !== 'clean') {
+          <div
+            class="flex flex-none items-center gap-2.5 border-b border-line bg-warning-bg px-3.5 py-1.75 text-fg [&_gt-icon]:text-warning"
+            role="status"
+          >
+            <gt-icon name="alert" [size]="16" />
+            <span>{{ 'operation.' + s.operation() | t }}</span>
+            <span class="spacer"></span>
+            @if (s.operation() === 'bisecting') {
+              <button class="btn small" (click)="flows.bisectMark(s, 'good')">
+                {{ 'commands.bisectGood' | t }}
+              </button>
+              <button class="btn small" (click)="flows.bisectMark(s, 'bad')">
+                {{ 'commands.bisectBad' | t }}
+              </button>
+            } @else {
+              <button
+                class="btn small primary"
+                (click)="flows.continueOp(s)"
+                [disabled]="!!s.status()?.conflicted?.length"
+              >
+                {{ 'common.continue' | t }}
+              </button>
+              @if (s.operation().startsWith('rebasing')) {
+                <button class="btn small" (click)="flows.skipOp(s)">{{ 'common.skip' | t }}</button>
+              }
+            }
+            <button class="btn small danger-ghost" (click)="flows.abortOp(s)">
+              {{ 'common.abort' | t }}
+            </button>
+          </div>
+        }
+
+        <main
+          class="relative grid min-h-0 flex-1"
+          [style.grid-template-columns]="sidebarWidth() + 'px 1fr'"
+        >
+          <gt-sidebar />
+          <div
+            class="absolute top-0 bottom-0 z-5 w-1.25 cursor-col-resize hover:bg-accent hover:opacity-50"
+            (pointerdown)="startResize($event, 'sidebar')"
+            [style.left.px]="sidebarWidth() - 2"
+          ></div>
+          <section class="min-h-0 min-w-0">
+            @if (s.view() === 'changes') {
+              <gt-changes />
+            } @else {
+              <gt-viewer />
+            }
+          </section>
+        </main>
+      } @else {
+        <main class="relative block min-h-0 flex-1">
+          <gt-welcome />
+        </main>
+      }
+    } @else if (ready()) {
+      <main class="relative block min-h-0 flex-1">
+        <gt-welcome />
+      </main>
+    } @else {
+      <main class="relative grid min-h-0 flex-1 place-items-center">
+        <span class="spinner"></span>
+      </main>
+    }
+
+    @if (ws.showConsole()) {
+      <div class="relative min-h-0 flex-none" [style.height.px]="consoleHeight()">
+        <div
+          class="absolute inset-x-0 -top-0.75 z-5 h-1.5 cursor-row-resize hover:bg-accent hover:opacity-50"
+          (pointerdown)="startResize($event, 'console')"
+        ></div>
+        <gt-console-panel />
+      </div>
+    }
+
+    <!-- Barra de estado -->
+    <footer
+      class="flex h-6.5 flex-none items-center gap-3.5 border-t border-line bg-chrome pr-1.5 pl-3 text-[.82em] text-fg"
+    >
+      @if (store(); as s) {
+        @let st = s.status();
+        @if (st) {
+          <span class="inline-flex items-center gap-1.25 whitespace-nowrap [&_gt-icon]:text-muted"
+            ><gt-icon name="git-branch" [size]="13" /> {{ st.head || '—' }}</span
+          >
+          @if (st.upstream) {
+            <span
+              class="muted inline-flex items-center gap-1.25 whitespace-nowrap [&_gt-icon]:text-muted"
+            >
+              {{ st.upstream }}
+            </span>
+            @if (st.ahead || st.behind) {
+              <span
+                class="inline-flex items-center gap-1.25 whitespace-nowrap [&_gt-icon]:text-muted"
+              >
+                @if (st.ahead) {
+                  <span class="mr-1 text-accent-fg">↑{{ st.ahead }}</span>
+                }
+                @if (st.behind) {
+                  <span class="text-warning">↓{{ st.behind }}</span>
+                }
+              </span>
+            } @else {
+              <span
+                class="muted inline-flex items-center gap-1.25 whitespace-nowrap [&_gt-icon]:text-muted"
+                >{{ 'status.synced' | t }}</span
+              >
+            }
+          } @else if (!st.detached && st.oid) {
+            <span
+              class="muted inline-flex items-center gap-1.25 whitespace-nowrap [&_gt-icon]:text-muted"
+              >{{ 'status.noUpstream' | t }}</span
+            >
+          }
+        }
+        @if (s.busy()) {
+          <span
+            class="inline-flex items-center gap-1.25 whitespace-nowrap text-accent-fg [&_gt-icon]:text-muted"
+          >
+            <span class="spinner size-2.5"></span> {{ s.busy() }}
+          </span>
+        }
+        <span class="muted flex-1 truncate text-right [direction:rtl]" [title]="s.path()">
+          <bdi>{{ s.path() }}</bdi>
+        </span>
+      } @else {
+        <span class="flex-1 truncate text-right [direction:rtl]"></span>
+      }
+      <button
+        class="inline-flex cursor-pointer items-center gap-1.25 rounded-sm border-0 bg-transparent px-1.75 py-0.5 text-muted [font:inherit] hover:bg-hover hover:text-fg"
+        (click)="toggleLanguage()"
+        [title]="'settings.language' | t"
+      >
+        {{ settings.settings()?.language === 'es' ? 'ES' : 'EN' }}
+      </button>
+      <button
+        class="inline-flex cursor-pointer items-center gap-1.25 rounded-sm border-0 bg-transparent px-1.75 py-0.5 text-muted [font:inherit] hover:bg-hover hover:text-fg"
+        (click)="toggleTheme()"
+        [title]="'settings.theme' | t"
+      >
+        <gt-icon [name]="settings.isDark() ? 'moon' : 'sun'" [size]="13" />
+      </button>
+      <button
+        class="inline-flex cursor-pointer items-center gap-1.25 rounded-sm border-0 px-1.75 py-0.5 [font:inherit] hover:bg-hover hover:text-fg"
+        [class]="ws.showConsole() ? 'bg-hover text-fg' : 'bg-transparent text-muted'"
+        (click)="ws.toggleConsole()"
+        title="Ctrl+`"
+      >
+        <gt-icon name="terminal" [size]="13" />
+        {{ 'console.title' | t }}
+      </button>
+    </footer>
+  </div>
+}
+<gt-hosts-layout />

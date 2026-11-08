@@ -1,0 +1,59 @@
+<div
+  class="flex max-h-[70vh] flex-col"
+  role="dialog"
+  aria-modal="true"
+  [attr.aria-label]="'commands.paletteHint' | t"
+>
+  <div class="flex items-center gap-2.5 border-b border-line px-4 py-3 text-muted">
+    <gt-icon name="search" [size]="16" />
+    <input
+      #input
+      type="text"
+      class="flex-1 border-0 bg-transparent px-0 py-1 text-[1.08em] shadow-none outline-none focus:shadow-none"
+      role="combobox"
+      aria-expanded="true"
+      aria-controls="palette-results"
+      [attr.aria-activedescendant]="'palette-opt-' + index()"
+      [attr.aria-label]="'commands.paletteHint' | t"
+      [placeholder]="'commands.paletteHint' | t"
+      [value]="query()"
+      (input)="onQuery($any($event.target).value)"
+      (keydown)="onKey($event)"
+    />
+  </div>
+  <ul class="m-0 list-none overflow-auto p-1.5" id="palette-results" role="listbox">
+    @for (row of rows(); track $index) {
+      @if (row.category; as cat) {
+        <li
+          class="cursor-default px-2.5 pt-2.5 pb-1 text-[.8em] font-semibold text-faint"
+          role="presentation"
+        >
+          {{ 'commands.category.' + cat | t }}
+        </li>
+      } @else if (row.item; as r) {
+        <li
+          role="option"
+          class="flex cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-1.75"
+          [class.bg-selected]="row.index === index()"
+          [id]="'palette-opt-' + row.index"
+          [attr.aria-selected]="row.index === index()"
+          (click)="run(r.cmd)"
+          (mousemove)="onHover($event, row.index!)"
+        >
+          <gt-icon class="text-muted" [name]="r.cmd.icon" [size]="16" />
+          <span class="flex-1">{{ r.label }}</span>
+          @if (r.cmd.git) {
+            <span class="text-[.84em] text-faint">{{ r.cmd.git }}</span>
+          }
+          @if (r.cmd.shortcut) {
+            <kbd class="rounded-sm border border-line px-1.25 py-px font-mono text-[.76em] text-muted">
+              {{ r.cmd.shortcut }}
+            </kbd>
+          }
+        </li>
+      }
+    } @empty {
+      <li class="cursor-default text-muted" role="presentation">{{ 'commands.noResults' | t }}</li>
+    }
+  </ul>
+</div>

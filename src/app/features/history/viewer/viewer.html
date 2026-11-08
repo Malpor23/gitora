@@ -1,0 +1,251 @@
+@let s = store();
+@let f = s.filter();
+<div class="grid h-full min-h-0 grid-rows-[minmax(180px,56%)_1fr]">
+  <section class="flex min-h-0 flex-col border-b border-line">
+    <div class="flex flex-none items-center gap-2.5 border-b border-line px-2.5 py-1.5">
+      <div
+        class="flex max-w-105 flex-1 items-center gap-1.5 rounded-md border border-line bg-input px-2 text-muted focus-within:border-accent"
+      >
+        <gt-icon name="search" [size]="14" />
+        <input
+          #search
+          type="search"
+          [placeholder]="'history.search' | t"
+          [value]="searchText()"
+          (input)="onSearch($any($event.target).value)"
+          (keydown.enter)="submitSearch()"
+          (search)="submitSearch()"
+          spellcheck="false"
+          class="flex-1 border-0 bg-transparent px-0 py-1.25 shadow-none outline-none"
+        />
+      </div>
+      <select
+        class="w-auto py-1"
+        [value]="f.all ? 'all' : 'current'"
+        (change)="s.setFilter({ all: $any($event.target).value === 'all' })"
+        [attr.aria-label]="'history.allBranches' | t"
+      >
+        <option value="all">{{ 'history.allBranches' | t }}</option>
+        <option value="current">{{ 'history.currentBranch' | t }}</option>
+      </select>
+      <label for="firstParent" class="mb-0 inline-flex items-center gap-1.5 whitespace-nowrap text-[.92em] text-muted">
+        {{ 'history.firstParent' | t }}
+      </label>
+      <input
+        id="firstParent"
+        type="checkbox"
+        [checked]="f.firstParent"
+        (change)="s.setFilter({ firstParent: $any($event.target).checked })"
+      />
+      @if (f.path || f.ref) {
+        <span
+          class="inline-flex items-center gap-1.5 rounded-full bg-accent-soft py-0.5 pr-1 pl-2 text-[.88em] text-accent-fg"
+        >
+          <gt-icon name="filter" [size]="12" />
+          {{ f.path ? ('history.fileHistoryOf' | t: { path: f.path }) : f.ref }}
+          <button
+            class="icon-btn small"
+            (click)="s.setFilter({ path: null, ref: null })"
+            [title]="'history.clearFilter' | t"
+          >
+            <gt-icon name="x" [size]="12" />
+          </button>
+        </span>
+      }
+    </div>
+
+    <div
+      class="grid grid-cols-[auto_minmax(0,1fr)_150px_110px_74px] items-center gap-x-2.5 px-2.5 h-6.5 flex-none border-b border-line text-[.82em] text-faint"
+    >
+      <span
+        class="flex items-center overflow-hidden whitespace-nowrap"
+        [style.width.px]="graphColWidth()"
+      >
+        {{ 'history.graph' | t }}
+      </span>
+      <span class="flex min-w-0 items-center gap-1.25 overflow-hidden whitespace-nowrap">
+        {{ 'history.message' | t }}
+      </span>
+      <span class="overflow-hidden text-[.94em] text-ellipsis whitespace-nowrap text-muted">
+        {{ 'history.author' | t }}
+      </span>
+      <span class="overflow-hidden text-[.94em] text-ellipsis whitespace-nowrap text-muted">
+        {{ 'history.date' | t }}
+      </span>
+      <span class="text-[.86em] text-faint">{{ 'history.hash' | t }}</span>
+    </div>
+
+    @if (s.changeCount() && !f.path && !f.search) {
+      <button
+        class="grid grid-cols-[auto_minmax(0,1fr)_150px_110px_74px] items-center gap-x-2.5 px-2.5 h-7 w-full cursor-pointer border-b border-line bg-transparent text-left text-muted italic hover:bg-hover hover:text-fg"
+        (click)="s.view.set('changes')"
+      >
+        <span class="flex items-center overflow-hidden" [style.width.px]="graphColWidth()">
+          <span class="ml-1 block size-2.25 rounded-full border-2 border-dashed border-muted"></span>
+        </span>
+        <span>{{ 'history.uncommitted' | t: { n: s.changeCount() } }}</span>
+      </button>
+    }
+
+    <div
+      class="relative flex-1 overflow-auto outline-none"
+      #scroller
+      tabindex="0"
+      (scroll)="onScroll($event)"
+      (keydown)="onKey($event)"
+      role="listbox"
+      [attr.aria-label]="'sidebar.allCommits' | t"
+    >
+      @if (!s.commits().length && !s.loadingLog()) {
+        <div class="grid h-full place-items-center p-6 text-center text-muted">
+          {{ (f.search || f.path || f.ref ? 'history.noResults' : 'history.noCommits') | t }}
+        </div>
+      }
+      <div class="relative" [style.height.px]="s.commits().length * rowH">
+        @let w = window();
+        @for (c of w.items; track c.hash; let i = $index) {
+          @let row = s.graph()[w.start + i];
+          <div
+            class="grid grid-cols-[auto_minmax(0,1fr)_150px_110px_74px] items-center gap-x-2.5 px-2.5 absolute inset-x-0 h-7 cursor-default"
+            role="option"
+            [style.top.px]="(w.start + i) * rowH"
+            [class]="s.selectedHashes().includes(c.hash) ? 'bg-selected' : 'hover:bg-hover'"
+            [attr.aria-selected]="s.selectedHashes().includes(c.hash)"
+            (click)="select($event, c)"
+            (contextmenu)="openMenu($event, c)"
+          >
+            <span class="flex items-center overflow-hidden" [style.width.px]="graphColWidth()">
+              @if (row) {
+                <gt-graph-cell [row]="row" [maxLanes]="maxLanes()" [head]="c.hash === headHash()" />
+              }
+            </span>
+            <span class="flex min-w-0 items-center gap-1.25 overflow-hidden whitespace-nowrap">
+              @for (r of c.refs; track r.name) {
+                <span
+                  class="inline-flex h-4.5 flex-none items-center gap-0.75 rounded-sm border px-1.5 text-[.82em] font-medium"
+                  [class]="refClass(r.type, r.current)"
+                  [style.--lane]="row ? 'var(--lane-' + row.color + ')' : null"
+                >
+                  @if (r.type === 'tag') {
+                    <gt-icon name="tag" [size]="11" />
+                  }
+                  @if (r.type === 'remote') {
+                    <gt-icon name="cloud" [size]="11" />
+                  }
+                  {{ r.name }}
+                </span>
+              }
+              <span
+                class="overflow-hidden text-ellipsis"
+                [class.text-muted]="c.parents.length > 1"
+                [class.font-semibold]="c.hash === headHash()"
+              >
+                {{ c.subject }}
+              </span>
+            </span>
+            <span
+              class="overflow-hidden text-[.94em] text-ellipsis whitespace-nowrap text-muted"
+              [title]="c.authorEmail"
+            >
+              {{ c.author }}
+            </span>
+            <span
+              class="overflow-hidden text-[.94em] text-ellipsis whitespace-nowrap text-muted"
+              [title]="c.authorDate"
+            >
+              {{ c.authorDate | relTime }}
+            </span>
+            <span class="mono text-[.86em] text-faint">{{ c.shortHash }}</span>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="flex min-h-0 flex-col bg-surface">
+    @if (details(); as d) {
+      <div class="max-h-[40%] flex-none overflow-auto border-b border-line px-3.5 py-2.5">
+        <div class="flex items-center gap-2.5">
+          <span
+            class="grid size-7.5 flex-none place-items-center rounded-full bg-[hsl(var(--h)_45%_42%)] text-[11px] font-semibold text-white"
+            [style.--h]="authorHue(d.authorEmail)"
+          >
+            {{ initials(d.author) }}
+          </span>
+          <div class="min-w-0 flex-1">
+            <strong class="mr-1.5">{{ d.author }}</strong>
+            <span class="muted">&lt;{{ d.authorEmail }}&gt;</span>
+            <div class="muted text-[.88em]">{{ d.authorDate | relTime }} · {{ d.authorDate }}</div>
+          </div>
+          <button
+            class="mono inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-line bg-transparent px-2 py-0.75 text-[.86em] text-muted hover:border-faint hover:text-fg"
+            (click)="flows.copy(d.hash)"
+            [title]="'ctx.copyHash' | t"
+          >
+            {{ d.shortHash }}
+            <gt-icon name="copy" [size]="12" />
+          </button>
+        </div>
+        <h3 class="mt-2.5 mb-1 text-[1.08em] leading-[1.35] font-semibold">{{ d.subject }}</h3>
+        @if (d.body) {
+          <pre class="mb-1.5 max-w-[80ch] leading-normal font-sans whitespace-pre-wrap text-fg">
+            {{ d.body }}
+          </pre>
+        }
+        <div class="muted flex flex-wrap items-center gap-1 text-[.88em]">
+          @if (d.parents.length) {
+            {{ 'history.parents' | t }}:
+            @for (p of d.parents; track p) {
+              <button
+                class="mono cursor-pointer border-0 bg-transparent px-0.5 text-accent-fg hover:underline"
+                (click)="s.selectCommit(p)"
+              >
+                {{ p.slice(0, 8) }}
+              </button>
+            }
+          }
+          @if (d.committer !== d.author) {
+            · {{ 'history.committer' | t }}: {{ d.committer }}
+          }
+          · {{ 'history.filesChanged' | t: { n: d.files.length } }}
+          <span class="text-diff-add">+{{ d.stats.additions }}</span>
+          <span class="text-diff-del">−{{ d.stats.deletions }}</span>
+        </div>
+      </div>
+      <div class="grid min-h-0 flex-1 grid-cols-[minmax(200px,28%)_1fr]">
+        <ul class="m-0 list-none overflow-auto border-r border-line py-1">
+          @for (file of d.files; track file.path) {
+            <li
+              class="flex h-6.5 cursor-default items-center gap-2 px-2.5 whitespace-nowrap"
+              [class]="selectedFile()?.path === file.path ? 'bg-selected' : 'hover:bg-hover'"
+              (click)="openFile(file)"
+              (contextmenu)="openFileMenu($event, file)"
+              [title]="file.path"
+            >
+              <span
+                class="inline-grid size-4 flex-none place-items-center rounded-sm font-mono text-[10.5px] font-semibold text-on-badge"
+                [class]="kindClass(file.kind)"
+              >
+                {{ letter(file) }}
+              </span>
+              <span class="overflow-hidden text-left text-ellipsis [direction:rtl]">
+                <bdi>{{ file.path }}</bdi>
+              </span>
+            </li>
+          }
+        </ul>
+        <div class="flex min-h-0 min-w-0 flex-col">
+          <gt-diff-viewer
+            [file]="fileDiff()"
+            [mode]="settings.settings()?.diffViewMode ?? 'unified'"
+            (modeChange)="setDiffMode($event)"
+          />
+        </div>
+      </div>
+    } @else {
+      <div class="grid h-full place-items-center p-6 text-center text-muted">
+        {{ 'history.selectCommit' | t }}
+      </div>
+    }
+  </section>
+</div>
