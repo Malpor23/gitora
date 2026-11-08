@@ -1,0 +1,27 @@
+<div class="dialog">
+  <header class="dialog-head">
+    <h2>{{ 'dialogs.reflog.title' | t }}</h2>
+    <button class="icon-btn" (click)="ref.close()">
+      <gt-icon name="x" />
+    </button>
+  </header>
+  <div class="dialog-body max-h-[70vh] overflow-auto p-0">
+    <ul class="m-0 list-none p-0">
+      @for (e of entries(); track e.selector) {
+        <li
+          class="grid grid-cols-[90px_74px_1fr_90px_auto_auto_auto] items-center gap-2 border-b border-line px-4 py-1.25"
+        >
+          <span class="mono text-[.86em] text-faint">{{ e.selector }}</span>
+          <span class="mono text-[.86em] text-faint">{{ e.hash.slice(0, 8) }}</span>
+          <span class="truncate">{{ e.action }}</span>
+          <span class="text-[.9em] text-muted">{{ e.date | relTime }}</span>
+          <button class="btn tiny" (click)="show(e)">{{ 'common.show' | t }}</button>
+          <button class="btn tiny" (click)="checkout(e)">
+            {{ 'dialogs.reflog.checkout' | t }}
+          </button>
+          <button class="btn tiny" (click)="reset(e)">{{ 'dialogs.reflog.reset' | t }}</button>
+        </li>
+      }
+    </ul>
+  </div>
+</div>

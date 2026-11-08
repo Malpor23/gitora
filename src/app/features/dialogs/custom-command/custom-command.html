@@ -1,0 +1,34 @@
+<div class="dialog">
+  <header class="dialog-head">
+    <h2>{{ 'dialogs.custom.title' | t }}</h2>
+    <button class="icon-btn" (click)="ref.close()">
+      <gt-icon name="x" />
+    </button>
+  </header>
+  <div class="dialog-body">
+    <form class="flex items-center gap-2" (submit)="$event.preventDefault(); run()">
+      <span class="mono text-accent-fg">git</span>
+      <input
+        #input
+        class="mono flex-1"
+        type="text"
+        [placeholder]="'dialogs.custom.placeholder' | t"
+        [value]="command()"
+        (input)="command.set($any($event.target).value)"
+        (keydown)="history($event)"
+        spellcheck="false"
+        autocomplete="off"
+      />
+      <button class="btn primary" type="submit" [disabled]="running() || !command().trim()">
+        @if (running()) {
+          <span class="spinner"></span>
+        }
+        {{ 'console.run' | t }}
+      </button>
+    </form>
+    <pre
+      class="mono mt-3 mb-0 max-h-[55vh] min-h-50 overflow-auto rounded-lg bg-console px-3 py-2.5 text-(length:--mono-size) whitespace-pre-wrap"
+      [class.text-danger]="isError()"
+      >{{ output() || ('console.empty' | t) }}</pre>
+  </div>
+</div>

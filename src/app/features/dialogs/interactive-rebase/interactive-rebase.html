@@ -1,0 +1,88 @@
+<div class="dialog">
+  <header class="dialog-head">
+    <h2>{{ 'dialogs.interactive.title' | t }}</h2>
+    <button class="icon-btn" (click)="ref.close()">
+      <gt-icon name="x" />
+    </button>
+  </header>
+  <div class="dialog-body">
+    <p class="muted">
+      {{ 'dialogs.interactive.base' | t: { base: shortBase } }}·
+      {{ 'dialogs.interactive.hint' | t }}
+    </p>
+    @if (loading()) {
+      <p><span class="spinner"></span></p>
+    } @else if (!items().length) {
+      <p class="muted">{{ 'dialogs.interactive.noCommits' | t }}</p>
+    } @else {
+      <ol
+        class="mx-0 mt-2.5 mb-3.5 max-h-[55vh] list-none overflow-auto rounded-lg border border-line p-0"
+      >
+        @for (it of items(); track it.hash; let i = $index) {
+          <li
+            draggable="true"
+            class="grid grid-cols-[20px_190px_74px_1fr] items-center gap-2.5 border-b border-line px-2.5 py-1.25 last:border-b-0"
+            [class]="{
+              'opacity-45': dragIndex() === i,
+              'bg-surface': it.action !== 'drop',
+              'bg-danger-bg': it.action === 'drop',
+              'shadow-[inset_3px_0_0_var(--lane-3)]':
+                it.action === 'squash' || it.action === 'fixup',
+              'shadow-[inset_3px_0_0_var(--accent)]':
+                it.action === 'reword' || it.action === 'edit',
+            }"
+            (dragstart)="dragIndex.set(i)"
+            (dragover)="$event.preventDefault(); over(i)"
+            (dragend)="dragIndex.set(null)"
+          >
+            <span class="flex cursor-grab text-faint"><gt-icon name="grip" [size]="14" /></span>
+            <select
+              class="py-0.75"
+              [ngModel]="it.action"
+              (ngModelChange)="setAction(i, $event)"
+              [attr.aria-label]="it.subject"
+            >
+              @for (a of actions; track a) {
+                <option [value]="a" [disabled]="i === 0 && (a === 'squash' || a === 'fixup')">
+                  {{ 'dialogs.interactive.action.' + a | t }}
+                </option>
+              }
+            </select>
+            <span class="mono text-[.86em] text-faint">{{ it.hash.slice(0, 8) }}</span>
+            @if (it.action === 'reword' || (it.action === 'squash' && isLastSquash(i))) {
+              <input
+                class="py-0.75"
+                type="text"
+                [ngModel]="it.message"
+                (ngModelChange)="setMessage(i, $event)"
+                [placeholder]="
+                  (it.action === 'reword'
+                    ? 'dialogs.interactive.newMessage'
+                    : 'dialogs.interactive.squashMessage'
+                  ) | t
+                "
+              />
+            } @else {
+              <span
+                class="truncate"
+                [class.line-through]="it.action === 'drop'"
+                [class.text-muted]="it.action === 'drop'"
+                >{{ it.subject }}</span
+              >
+            }
+          </li>
+        }
+      </ol>
+    }
+    <label class="check flex items-center gap-2"
+      ><input type="checkbox" [ngModel]="autostash()" (ngModelChange)="autostash.set($event)" />
+      {{ 'dialogs.rebase.autostash' | t }}</label
+    >
+  </div>
+  <footer class="dialog-foot">
+    <button class="btn ghost" (click)="ref.close()">{{ 'common.cancel' | t }}</button>
+    <button class="btn primary" [disabled]="!items().length" (click)="start()">
+      {{ 'dialogs.interactive.start' | t }}
+    </button>
+  </footer>
+</div>

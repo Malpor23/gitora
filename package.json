@@ -1,0 +1,62 @@
+{
+  "name": "gitora",
+  "productName": "Gitora",
+  "version": "0.1.0",
+  "description": "Cliente Git gráfico, moderno y multidioma para Windows y Linux",
+  "author": "Manuel <mg230886@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "ng": "ng",
+    "test": "ng test",
+    "start": "npm run build:electron && concurrently -k \"ng serve --port 4300\" \"wait-on http://localhost:4300 && cross-env GITORA_DEV=1 electron .\"",
+    "build": "ng build && npm run build:electron",
+    "build:electron": "tsc -p tsconfig.electron.json",
+    "test:core": "npm run build:electron && node --test dist/electron/tests/*.test.js",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:linux": "npm run build && electron-builder --linux",
+    "dist:arch": "npm run build && electron-builder --linux pacman",
+    "dev:server": "npm run build:electron && node dist/electron/dev-server.js",
+    "start:web": "concurrently -k -n server,web \"npm run dev:server\" \"ng serve --port 4300 --proxy-config proxy.conf.json\""
+  },
+  "private": true,
+  "packageManager": "npm@11.19.1",
+  "dependencies": {
+    "@angular/common": "^22.2.0",
+    "@angular/compiler": "^22.2.0",
+    "@angular/core": "^22.2.0",
+    "@angular/forms": "^22.2.0",
+    "@angular/platform-browser": "^22.2.0",
+    "@angular/router": "^22.2.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/ibm-plex-sans": "^5.3.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^22.2.6",
+    "@angular/cli": "^22.2.6",
+    "@angular/compiler-cli": "^22.2.0",
+    "@tailwindcss/postcss": "^4.1.12",
+    "@types/node": "^22.20.5",
+    "concurrently": "^10.0.7",
+    "cross-env": "^10.1.0",
+    "electron": "^45.2.3",
+    "electron-builder": "^25.1.0",
+    "jsdom": "^30.0.0",
+    "postcss": "^8.5.3",
+    "prettier": "^3.8.1",
+    "tailwindcss": "^4.1.12",
+    "typescript": "~6.0.2",
+    "vitest": "^5.0.0",
+    "wait-on": "^9.5.1"
+  },
+  "main": "dist/electron/main.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/malpor23/gitora.git"
+  },
+  "homepage": "https://github.com/malpor23/gitora#readme",
+  "bugs": {
+    "url": "https://github.com/malpor23/gitora/issues"
+  }
+}

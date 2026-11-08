@@ -1,0 +1,174 @@
+@if (file(); as f) {
+  <div
+    class="flex items-center gap-2.5 px-3 py-1.5 min-h-9.5 border-b border-line bg-surface flex-none"
+  >
+    <span
+      class="mono text-[.92em] overflow-hidden text-ellipsis whitespace-nowrap min-w-0"
+      [title]="f.newPath"
+    >
+      {{ f.newPath }}
+      @if (f.isRename && f.oldPath !== f.newPath) {
+        <span class="muted">· {{ 'diff.renamedFrom' | t: { path: f.oldPath } }}</span>
+      }
+      @if (f.isNew) {
+        <span
+          class="text-[.78em] px-1.5 py-px rounded-sm ml-1.5 font-sans bg-diff-add-bg text-diff-add"
+          >{{ 'diff.newFile' | t }}</span
+        >
+      }
+      @if (f.isDeleted) {
+        <span
+          class="text-[.78em] px-1.5 py-px rounded-sm ml-1.5 font-sans bg-diff-del-bg text-diff-del"
+          >{{ 'diff.deletedFile' | t }}</span
+        >
+      }
+    </span>
+    <span class="font-mono text-[.85em] whitespace-nowrap"
+      ><span class="text-diff-add">+{{ f.additions }}</span>
+      <span class="text-diff-del">−{{ f.deletions }}</span></span
+    >
+    @if (selectedCount() && actions() !== 'none') {
+      <span class="flex gap-1.5">
+        @if (actions() === 'stage') {
+          <button class="btn small primary" (click)="emitLines('stage')">
+            {{ 'diff.stageLines' | t }} ({{ selectedCount() }})
+          </button>
+          <button class="btn small danger-ghost" (click)="emitLines('discard')">
+            {{ 'diff.discardLines' | t }}
+          </button>
+        } @else {
+          <button class="btn small" (click)="emitLines('unstage')">
+            {{ 'diff.unstageLines' | t }} ({{ selectedCount() }})
+          </button>
+        }
+      </span>
+    }
+    <span class="spacer"></span>
+    <div class="inline-flex border border-line rounded-md overflow-hidden" role="group">
+      <button
+        class="border-0 py-0.75 px-1.75 cursor-pointer inline-flex"
+        [class]="mode() === 'unified' ? 'bg-hover text-fg' : 'bg-transparent text-muted'"
+        (click)="modeChange.emit('unified')"
+        [title]="'diff.unified' | t"
+      >
+        <gt-icon name="rows" [size]="15" />
+      </button>
+      <button
+        class="border-0 py-0.75 px-1.75 cursor-pointer inline-flex"
+        [class]="mode() === 'split' ? 'bg-hover text-fg' : 'bg-transparent text-muted'"
+        (click)="modeChange.emit('split')"
+        [title]="'diff.split' | t"
+      >
+        <gt-icon name="columns" [size]="15" />
+      </button>
+    </div>
+  </div>
+
+  @if (f.isBinary) {
+    <div
+      class="flex flex-col gap-2.5 items-center justify-center flex-1 text-muted p-6 text-center"
+    >
+      {{ 'diff.binary' | t }}
+    </div>
+  } @else if (!f.hunks.length) {
+    <div
+      class="flex flex-col gap-2.5 items-center justify-center flex-1 text-muted p-6 text-center"
+    >
+      {{ 'diff.empty' | t }}
+    </div>
+  } @else if (tooLarge() && !forceShow()) {
+    <div
+      class="flex flex-col gap-2.5 items-center justify-center flex-1 text-muted p-6 text-center"
+    >
+      {{ 'diff.tooLarge' | t: { n: lineCount() } }}
+      <button class="btn small" (click)="forceShow.set(true)">{{ 'diff.showAnyway' | t }}</button>
+    </div>
+  } @else {
+    <div class="mono overflow-auto flex-1 text-(length:--mono-size) leading-[1.55] pb-6">
+      @for (h of f.hunks; track $index; let hi = $index) {
+        <div
+          class="sticky top-0 z-1 flex items-center gap-2 px-3 py-1 bg-hunk text-muted border-y border-line"
+        >
+          <span class="text-accent-fg">{{ h.header.split('@@')[1] }}</span>
+          <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{{ h.section }}</span>
+          @if (actions() === 'stage') {
+            <button
+              class="btn tiny"
+              (click)="hunkAction.emit({ mode: 'stage', hunkIndex: hi, lines: null })"
+            >
+              {{ 'diff.stageHunk' | t }}
+            </button>
+            <button
+              class="btn tiny danger-ghost"
+              (click)="hunkAction.emit({ mode: 'discard', hunkIndex: hi, lines: null })"
+            >
+              {{ 'diff.discardHunk' | t }}
+            </button>
+          } @else if (actions() === 'unstage') {
+            <button
+              class="btn tiny"
+              (click)="hunkAction.emit({ mode: 'unstage', hunkIndex: hi, lines: null })"
+            >
+              {{ 'diff.unstageHunk' | t }}
+            </button>
+          }
+        </div>
+        @if (mode() === 'unified') {
+          @for (l of h.lines; track $index; let li = $index) {
+            <div
+              class="group flex whitespace-pre cursor-default min-w-max data-[type=add]:bg-diff-add-bg data-[type=add]:cursor-pointer data-[type=del]:bg-diff-del-bg data-[type=del]:cursor-pointer data-[type=nonewline]:text-faint data-[type=nonewline]:italic data-[type=pad]:bg-(image:--pad-bg) data-selected:shadow-[inset_3px_0_0_var(--accent)] data-selected:brightness-[1.18]"
+              [attr.data-type]="l.type"
+              [attr.data-selected]="isSelected(hi, li) ? '' : null"
+              (mousedown)="toggle($event, hi, li, l)"
+            >
+              <span class="w-11.5 flex-none text-right pr-2 text-faint select-none">{{ l.oldNo ?? '' }}</span>
+              <span class="w-11.5 flex-none text-right pr-2 text-faint select-none">{{ l.newNo ?? '' }}</span>
+              <span class="w-4 flex-none text-faint select-none group-data-[type=add]:text-diff-add group-data-[type=del]:text-diff-del">
+                {{ sign(l) }}
+              </span>
+              <span class="code pr-6 tab-4">{{ l.content }}</span>
+            </div>
+          }
+        } @else {
+          @for (row of splitRows()[hi]; track $index) {
+            <div class="grid grid-cols-2 min-w-max">
+              <div
+                class="group flex whitespace-pre cursor-default min-w-max data-[type=add]:bg-diff-add-bg data-[type=add]:cursor-pointer data-[type=del]:bg-diff-del-bg data-[type=del]:cursor-pointer data-[type=nonewline]:text-faint data-[type=nonewline]:italic data-[type=pad]:bg-(image:--pad-bg) data-selected:shadow-[inset_3px_0_0_var(--accent)] data-selected:brightness-[1.18] border-r border-line"
+                [attr.data-type]="row.left?.type ?? 'pad'"
+                [attr.data-selected]="row.left && isSelected(hi, row.left.idx) ? '' : null"
+                (mousedown)="row.left && toggle($event, hi, row.left.idx, row.left)"
+              >
+                <span class="w-11.5 flex-none text-right pr-2 text-faint select-none">
+                  {{ row.left?.oldNo ?? '' }}
+                </span>
+                <span class="code pr-6 tab-4 overflow-hidden">{{row.left?.content ?? '' }}</span>
+              </div>
+              <div
+                class="group flex whitespace-pre cursor-default min-w-max data-[type=add]:bg-diff-add-bg data-[type=add]:cursor-pointer data-[type=del]:bg-diff-del-bg data-[type=del]:cursor-pointer data-[type=nonewline]:text-faint data-[type=nonewline]:italic data-[type=pad]:bg-(image:--pad-bg) data-selected:shadow-[inset_3px_0_0_var(--accent)] data-selected:brightness-[1.18] border-r border-line"
+                [attr.data-type]="row.right?.type ?? 'pad'"
+                [attr.data-selected]="row.right && isSelected(hi, row.right.idx) ? '' : null"
+                (mousedown)="row.right && toggle($event, hi, row.right.idx, row.right)"
+              >
+                <span class="w-11.5 flex-none text-right pr-2 text-faint select-none">
+                  {{ row.right?.newNo ?? '' }}
+                </span>
+                <span class="code pr-6 tab-4 overflow-hidden">{{ row.right?.content ?? '' }}</span>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+    @if (actions() !== 'none') {
+      <p class="m-0 px-3 py-1 text-[.82em] text-faint border-t border-line flex-none">
+        {{ 'diff.selectLinesHint' | t }}
+      </p>
+    }
+  }
+} @else {
+  <div
+    class="flex flex-col gap-2.5 items-center justify-center flex-1 text-muted p-6 text-center"
+  >
+    {{ emptyText() }}
+  </div>
+}

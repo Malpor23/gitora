@@ -1,0 +1,64 @@
+<div class="dialog">
+  <header class="dialog-head">
+    <h2>{{ 'dialogs.config.title' | t }}</h2>
+    <button class="icon-btn" (click)="ref.close()"><gt-icon name="x" /></button>
+  </header>
+  <div class="dialog-body">
+    <div class="mb-2.5 flex gap-1 border-b border-line">
+      <button
+        class="cursor-pointer border-0 border-b-2 bg-transparent px-3 py-1.5 font-[inherit]"
+        [class]="scope() === 'local' ? 'border-accent text-fg' : 'border-transparent text-muted'"
+        (click)="load('local')"
+      >
+        {{ 'dialogs.config.local' | t }}
+      </button>
+      <button
+        class="cursor-pointer border-0 border-b-2 bg-transparent px-3 py-1.5 font-[inherit]"
+        [class]="scope() === 'global' ? 'border-accent text-fg' : 'border-transparent text-muted'"
+        (click)="load('global')"
+      >
+        {{ 'dialogs.config.global' | t }}
+      </button>
+    </div>
+    <div class="max-h-[50vh] overflow-auto">
+      @for (row of rows(); track row[0]) {
+        <div class="grid grid-cols-[260px_1fr_auto] items-center gap-2 py-0.75">
+          <span class="mono truncate text-[.9em] text-muted" [title]="row[0]">{{ row[0] }}</span>
+          <input
+            class="mono py-0.75"
+            type="text"
+            [value]="row[1]"
+            (change)="set(row[0], $any($event.target).value)"
+          />
+          <button class="icon-btn small" (click)="unset(row[0])" [title]="'common.remove' | t">
+            <gt-icon name="trash" [size]="14" />
+          </button>
+        </div>
+      }
+    </div>
+    <form
+      class="mt-3 grid grid-cols-[260px_1fr_auto] gap-2 border-t border-line pt-3"
+      (submit)="$event.preventDefault(); add()"
+    >
+      <input
+        class="mono"
+        type="text"
+        name="k"
+        [placeholder]="'dialogs.config.key' | t"
+        [ngModel]="newKey()"
+        (ngModelChange)="newKey.set($event)"
+      />
+      <input
+        class="mono"
+        type="text"
+        name="v"
+        [placeholder]="'dialogs.config.value' | t"
+        [ngModel]="newValue()"
+        (ngModelChange)="newValue.set($event)"
+      />
+      <button class="btn" type="submit" [disabled]="!newKey().trim()">
+        {{ 'dialogs.config.add' | t }}
+      </button>
+    </form>
+  </div>
+</div>

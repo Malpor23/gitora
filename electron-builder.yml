@@ -1,0 +1,56 @@
+appId: dev.manuel.gitora
+productName: Gitora
+copyright: Copyright © 2026 Manuel
+directories:
+  output: release
+  buildResources: public
+files:
+  - dist/**/*
+  - "!dist/**/*.map"
+  - "!dist/electron/tests/**"
+  - "!dist/electron/dev-server.js"
+  - package.json
+asar: true
+
+win:
+  target:
+    - target: nsis
+      arch: [x64, arm64]
+    - target: portable
+      arch: [x64]
+  icon: public/icon.png
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+  language: "3082"          # Español (internacional)
+  installerLanguages: [es_ES, en_US]
+  multiLanguageInstaller: true
+  createDesktopShortcut: true
+  shortcutName: Gitora
+
+linux:
+  target:
+    - AppImage
+    - pacman
+    - deb
+    - rpm
+    - tar.gz
+  category: Development
+  icon: public/icon.png
+  maintainer: Manuel <mg230886@gmail.com>
+  synopsis: Cliente Git gráfico y multidioma
+  desktop:
+    entry:
+      Name: Gitora
+      Comment: Cliente Git gráfico
+      Comment[es]: Cliente Git gráfico
+      Comment[en]: Graphical Git client
+      Categories: Development;RevisionControl;
+      MimeType: x-scheme-handler/gitora;
+pacman:
+  depends: [git, gtk3, nss, libxss, libsecret]
+deb:
+  depends: [git, libgtk-3-0, libnss3, libxss1, libsecret-1-0]
+rpm:
+  depends: [git, gtk3, nss, libXScrnSaver, libsecret]

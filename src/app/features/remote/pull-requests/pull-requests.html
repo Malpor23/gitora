@@ -1,0 +1,58 @@
+<div class="dialog">
+  <header class="dialog-head">
+    <h2>{{ 'pr.title' | t }}</h2>
+    <button class="icon-btn" (click)="ref.close()">
+      <gt-icon name="x" />
+    </button>
+  </header>
+  <div class="dialog-body">
+    <div class="mb-3 flex items-center gap-2">
+      <label>{{ 'pr.remote' | t }}</label>
+      <select class="flex-1" [ngModel]="remote()" (ngModelChange)="load($event)">
+        @for (r of data.store.remotes(); track r.name) {
+          <option [value]="r.name">{{ r.name }} — {{ r.fetchUrl }}</option>
+        }
+      </select>
+      <button class="btn primary small" (click)="create()">{{ 'pr.create' | t }}</button>
+    </div>
+    @if (error()) {
+      <p class="error-text">{{ error() }}</p>
+    }
+    @if (loading()) {
+      <p><span class="spinner"></span></p>
+    } @else if (!error() && !prs().length) {
+      <p class="muted">{{ 'pr.none' | t }}</p>
+    }
+    <ul class="m-0 max-h-[60vh] list-none overflow-auto p-0">
+      @for (p of prs(); track p.id) {
+        <li
+          class="grid grid-cols-[54px_1fr_auto_auto] items-center gap-2.5 border-b border-line py-2"
+        >
+          <span class="mono text-faint">#{{ p.number }}</span>
+          <div>
+            <div class="font-medium">
+              @if (p.draft) {
+                <span
+                  class="mr-1 rounded-sm border border-line px-1.25 text-[.75em] font-normal text-muted"
+                >
+                  {{ 'pr.draft' | t }}
+                </span>
+              }
+              {{ p.title }}
+            </div>
+            <div class="mt-0.5 text-[.88em] text-muted">
+              {{ 'pr.by' | t: { author: p.author } }} · {{ p.createdAt | relTime }} ·
+              <span class="mono">{{ p.sourceBranch }} → {{ p.targetBranch }}</span>
+            </div>
+          </div>
+          @if (hasRemoteBranch(p)) {
+            <button class="btn small" (click)="checkout(p)">{{ 'pr.checkout' | t }}</button>
+          }
+          <button class="icon-btn" (click)="open(p)">
+            <gt-icon name="external" [size]="15" />
+          </button>
+        </li>
+      }
+    </ul>
+  </div>
+</div>

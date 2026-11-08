@@ -1,0 +1,68 @@
+<div class="flex h-full flex-col border-t border-line bg-console">
+  <header
+    class="flex h-7.5 flex-none items-center gap-1.5 border-b border-line pr-2 pl-3 text-[.88em] text-muted"
+  >
+    <gt-icon name="terminal" [size]="14" />
+    <span>{{ 'console.title' | t }}</span>
+    <span class="spacer"></span>
+    <button class="btn tiny ghost" (click)="ws.clearConsole()">{{ 'console.clear' | t }}</button>
+    <button
+      class="icon-btn small"
+      (click)="ws.toggleConsole()"
+      [attr.aria-label]="'common.close' | t"
+    >
+      <gt-icon name="x" [size]="13" />
+    </button>
+  </header>
+  <div class="mono flex-1 overflow-auto px-3 py-1.5 text-[calc(var(--mono-size)-0.5px)]" #log>
+    @for (e of ws.commandLog(); track e.id) {
+      <div class="border-b border-dashed border-line py-0.75">
+        <div
+          class="flex gap-1.5 break-all whitespace-pre-wrap"
+          [class.text-fg]="e.running || e.exitCode === 0"
+          [class.text-danger]="!e.running && e.exitCode !== 0"
+        >
+          <span class="text-accent-fg">$</span> git {{ e.args.join(' ') }}
+          <span class="ml-auto whitespace-nowrap text-faint">
+            @if (e.running) {
+              <span class="spinner size-2.5"></span>
+            } @else {
+              {{ e.durationMs }} ms · {{ e.exitCode }}
+            }
+          </span>
+        </div>
+        @if (e.output) {
+          <pre class="mx-0 my-0.5 ml-3.5 max-h-40 overflow-auto whitespace-pre-wrap text-muted">{{
+            e.output
+          }}</pre>
+        }
+        @if (e.error) {
+          <pre
+            class="mx-0 my-0.5 ml-3.5 max-h-40 overflow-auto whitespace-pre-wrap"
+            [class.text-warning]="e.running || e.exitCode === 0"
+            [class.text-danger]="!e.running && e.exitCode !== 0"
+            >{{ e.error }}</pre>
+        }
+      </div>
+    } @empty {
+      <p class="font-sans text-faint">{{ 'console.empty' | t }}</p>
+    }
+  </div>
+  @if (ws.active()) {
+    <form
+      class="flex flex-none items-center gap-2 border-t border-line px-3 py-1"
+      (submit)="$event.preventDefault(); run()"
+    >
+      <span class="mono text-accent-fg">git</span>
+      <input
+        class="mono flex-1 border-0 bg-transparent py-1 px-0 shadow-none outline-none"
+        type="text"
+        [value]="cmd()"
+        (input)="cmd.set($any($event.target).value)"
+        [placeholder]="'console.placeholder' | t"
+        spellcheck="false"
+        autocomplete="off"
+      />
+    </form>
+  }
+</div>

@@ -1,0 +1,243 @@
+@let st = s();
+<div class="dialog h-[min(640px,86vh)]">
+  <header class="dialog-head">
+    <h2>{{ 'settings.title' | t }}</h2>
+    <button class="icon-btn" (click)="ref.close()" [attr.aria-label]="'common.close' | t">
+      <gt-icon name="x" />
+    </button>
+  </header>
+  <div class="grid min-h-0 flex-1 grid-cols-[170px_1fr]">
+    <nav class="flex flex-col gap-0.5 border-r border-line bg-surface-2 px-2 py-2.5" role="tablist">
+      @for (t of tabs; track t) {
+        <button
+          role="tab"
+          class="cursor-pointer rounded-md border-0 px-2.5 py-1.75 text-left"
+          [class]="
+            tab() === t
+              ? 'bg-selected text-fg font-medium'
+              : 'bg-transparent text-muted hover:bg-hover hover:text-fg'
+          "
+          [attr.aria-selected]="tab() === t"
+          (click)="tab.set(t)"
+        >
+          {{ 'settings.tabs.' + t | t }}
+        </button>
+      }
+    </nav>
+    <div class="overflow-auto px-5.5 py-4.5">
+      @switch (tab()) {
+        @case ('general') {
+          <div class="mb-4 max-w-130">
+            <label for="s-lang">{{ 'settings.language' | t }}</label>
+            <select
+              id="s-lang"
+              [ngModel]="st.language"
+              (ngModelChange)="update('language', $event)"
+            >
+              @for (l of languages; track l.code) {
+                <option [value]="l.code">{{ l.label }}</option>
+              }
+            </select>
+          </div>
+          <div class="mb-4 max-w-130">
+            <label>{{ 'settings.theme' | t }}</label>
+            <div class="flex flex-wrap gap-1.5">
+              @for (th of ['dark', 'light', 'system']; track th) {
+                <button
+                  class="inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-3 py-1.5"
+                  [class]="
+                    st.theme === th
+                      ? 'border-accent bg-accent-soft'
+                      : 'border-line bg-transparent hover:border-faint'
+                  "
+                  (click)="update('theme', $any(th))"
+                >
+                  {{
+                    (th === 'dark'
+                      ? 'settings.themeDark'
+                      : th === 'light'
+                        ? 'settings.themeLight'
+                        : 'settings.themeSystem'
+                    ) | t
+                  }}
+                </button>
+              }
+            </div>
+          </div>
+          <div class="mb-4 max-w-130">
+            <label for="s-font">{{ 'settings.fontSize' | t }} ({{ st.fontSize }}px)</label>
+            <input
+              id="s-font"
+              type="range"
+              class="w-65 p-0 accent-accent"
+              min="11"
+              max="17"
+              [ngModel]="st.fontSize"
+              (ngModelChange)="update('fontSize', +$event)"
+            />
+          </div>
+          <label class="check flex items-center gap-2 mb-2 cursor-pointer">
+            <input
+              type="checkbox"
+              [ngModel]="st.confirmDangerous"
+              (ngModelChange)="update('confirmDangerous', $event)"
+            />
+            {{ 'settings.confirmDangerous' | t }}
+          </label>
+          <label class="check flex items-center gap-2 mb-2 cursor-pointer">
+            <input
+              type="checkbox"
+              [ngModel]="st.watchWorkingTree"
+              (ngModelChange)="update('watchWorkingTree', $event)"
+            />
+              {{ 'settings.watchWorkingTree' | t }}
+          </label>
+          <p class="hint -mt-1 mr-0 mb-3.5 ml-6">{{ 'settings.watchHint' | t }}</p>
+          <div class="mb-4 max-w-130">
+            <label for="s-term">{{ 'settings.terminal' | t }}</label>
+            <input
+              id="s-term"
+              class="mono"
+              type="text"
+              [ngModel]="st.terminal"
+              (change)="update('terminal', $any($event.target).value)"
+              placeholder="kitty"
+            />
+            <p class="hint">{{ 'settings.terminalHint' | t }}</p>
+          </div>
+        }
+        @case ('git') {
+          <div class="mb-4 max-w-130">
+            <label for="s-git">{{ 'settings.gitPath' | t }}</label>
+            <input
+              id="s-git"
+              class="mono"
+              type="text"
+              [ngModel]="st.gitPath"
+              (change)="update('gitPath', $any($event.target).value)"
+              placeholder="git"
+            />
+            <p class="hint">
+              {{ 'settings.gitPathHint' | t }} —
+              {{ svc.gitVersion() ?? ('welcome.gitMissing' | t) }}
+            </p>
+          </div>
+          <div class="mb-4 max-w-130">
+            <label for="s-clone">{{ 'settings.defaultCloneDir' | t }}</label>
+            <div class="flex gap-2">
+              <input
+                id="s-clone"
+                class="mono flex-1"
+                type="text"
+                [ngModel]="st.defaultCloneDir"
+                (change)="update('defaultCloneDir', $any($event.target).value)"
+              />
+              <button class="btn" (click)="browseCloneDir()">{{ 'common.browse' | t }}</button>
+            </div>
+          </div>
+          <div class="mb-4 max-w-130">
+            <label for="s-pull">{{ 'settings.pullMode' | t }}</label>
+            <select
+              id="s-pull"
+              [ngModel]="st.pullMode"
+              (ngModelChange)="update('pullMode', $event)"
+            >
+              <option value="merge">{{ 'dialogs.pull.merge' | t }}</option>
+              <option value="rebase">{{ 'dialogs.pull.rebase' | t }}</option>
+              <option value="ff-only">{{ 'dialogs.pull.ffOnly' | t }}</option>
+            </select>
+          </div>
+          <div class="mb-4 max-w-130">
+            <label for="s-fetch">{{ 'settings.fetchInterval' | t }}</label>
+            <input
+              id="s-fetch"
+              type="number"
+              class="w-30"
+              min="0"
+              max="240"
+              [ngModel]="st.fetchInterval"
+              (change)="update('fetchInterval', +$any($event.target).value)"
+            />
+          </div>
+          <div class="mb-4 max-w-130">
+            <label for="s-merge">{{ 'settings.mergeTool' | t }}</label>
+            <input
+              id="s-merge"
+              class="mono"
+              type="text"
+              [ngModel]="st.externalMergeTool"
+              (change)="update('externalMergeTool', $any($event.target).value)"
+              placeholder="meld"
+            />
+            <p class="hint">{{ 'settings.mergeToolHint' | t }}</p>
+          </div>
+        }
+        @case ('diff') {
+          <div class="mb-4 max-w-130">
+            <label>{{ 'settings.diffViewMode' | t }}</label>
+            <div class="flex flex-wrap gap-1.5">
+              <button
+                class="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-line bg-transparent px-3 py-1.5"
+                [class]="
+                  st.diffViewMode === 'unified'
+                    ? 'border-accent bg-accent-soft'
+                    : 'hover:border-faint'
+                "
+                (click)="update('diffViewMode', 'unified')"
+              >
+                {{ 'diff.unified' | t }}
+              </button>
+              <button
+                class="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-line bg-transparent px-3 py-1.5"
+                [class]="
+                  st.diffViewMode === 'split'
+                    ? 'border-accent bg-accent-soft'
+                    : 'hover:border-faint'
+                "
+                (click)="update('diffViewMode', 'split')"
+              >
+                {{ 'diff.split' | t }}
+              </button>
+            </div>
+          </div>
+          <div class="mb-4 max-w-130">
+            <label for="s-ctx">{{ 'settings.diffContext' | t }}</label>
+            <input
+              id="s-ctx"
+              type="number"
+              class="w-30"
+              min="0"
+              max="50"
+              [ngModel]="st.diffContext"
+              (change)="update('diffContext', +$any($event.target).value)"
+            />
+          </div>
+          <label class="check flex items-center gap-2 mb-2 cursor-pointer">
+            <input
+              type="checkbox"
+              [ngModel]="st.ignoreWhitespace"
+              (ngModelChange)="update('ignoreWhitespace', $event)"
+            />
+            {{ 'settings.ignoreWhitespace' | t }}
+          </label>
+        }
+        @case ('accounts') {
+          <gt-accounts-tab />
+        }
+        @case ('about') {
+          <div class="grid justify-items-center pt-7.5 text-center">
+            <div class="grid size-14 place-items-center rounded-[14px] bg-accent text-on-accent">
+              <gt-icon name="git-merge" [size]="28" />
+            </div>
+            <h3 class="mt-3 mb-0.5 text-[1.3em] font-bold">Gitora</h3>
+            <p class="muted my-0.5">{{ 'settings.version' | t: { v: '0.1.0' } }}</p>
+            <p class="muted my-0.5">
+              {{ 'settings.gitVersion' | t: { v: svc.gitVersion() ?? '—' } }}
+            </p>
+            <p class="muted my-0.5">{{ svc.platform() }}</p>
+          </div>
+        }
+      }
+    </div>
+  </div>
+</div>

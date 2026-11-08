@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Gitora
+Comment=Cliente Git gráfico
+Comment[es]=Cliente Git gráfico
+Comment[en]=Graphical Git client
+Exec=gitora %U
+Icon=gitora
+Terminal=false
+Type=Application
+Categories=Development;RevisionControl;
+StartupWMClass=Gitora
