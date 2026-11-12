@@ -3,7 +3,7 @@
 #   yay -S gitora    (o: paru -S gitora)
 # Necesita red durante build(): npm ci descarga las dependencias y electron-builder el binario de Electron.
 pkgname=gitora
-pkgver=0.1.0
+pkgver=0.1.1
 pkgrel=1
 pkgdesc="Graphical, modern, multilingual Git client (Spanish/English)"
 arch=('x86_64' 'aarch64')

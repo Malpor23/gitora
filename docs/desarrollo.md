@@ -74,10 +74,10 @@ El lanzador de desarrollo se llama «Gitora (dev)» y tiene prioridad sobre uno 
 `packaging/aur/PKGBUILD` compila desde el tag de GitHub (`v<pkgver>`), de modo que `yay -S gitora` o `paru -S gitora` funcionan cuando el paquete está en el AUR. Gitora no puede publicarlo por ti: requiere tu cuenta del AUR.
 
 1. Crea una cuenta en <https://aur.archlinux.org> y agrega tu clave SSH pública en tu perfil.
-2. Publica antes el tag y el release en GitHub (`git tag -a v0.1.0 -m v0.1.0 && git push origin v0.1.0`).
+2. Publica antes el tag y el release en GitHub (`git tag -a v0.1.1 -m v0.1.1 && git push origin v0.1.1`).
 3. Clona el repositorio (se crea vacío en el primer push): `git clone ssh://aur@aur.archlinux.org/gitora.git aur-gitora`.
 4. Copia `packaging/aur/PKGBUILD`, actualiza la suma con `updpkgsums` (paquete `pacman-contrib`) y genera los metadatos: `makepkg --printsrcinfo > .SRCINFO`.
 5. Prueba en limpio con `makepkg -si`.
-6. `git add PKGBUILD .SRCINFO && git commit -m "gitora 0.1.0" && git push`.
+6. `git add PKGBUILD .SRCINFO && git commit -m "gitora 0.1.1" && git push`.
 
 Para cada versión nueva: sube `pkgver`, repite `updpkgsums` y `.SRCINFO`, y haz push. El build descarga las dependencias de npm y el binario de Electron, así que necesita red. Si prefieres una instalación rápida sin compilar, se puede publicar además `gitora-bin`, que reutilice el `.tar.gz` del release.
