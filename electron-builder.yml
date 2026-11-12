@@ -37,6 +37,21 @@ nsis:
   createDesktopShortcut: true
   shortcutName: Gitora
 
+mac:
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+    - target: zip
+      arch: [x64, arm64]
+  category: public.app-category.developer-tools
+  icon: public/icon.png
+  # Sin certificado de Apple Developer: firma ad-hoc ("-"), necesaria para que arrancen los binarios arm64.
+  # Con ad-hoc, hardenedRuntime debe ir apagado. No hay notarización (ver README, sección macOS).
+  identity: "-"
+  hardenedRuntime: false
+dmg:
+  title: Gitora ${version}
+
 linux:
   target:
     - AppImage

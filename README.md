@@ -2,7 +2,7 @@
 
 [English](README.en.md) | **Español**
 
-Cliente Git gráfico para Windows y Linux. Usa el `git` instalado en tu sistema, así que tus hooks, llaves SSH, GPG y gestores de credenciales funcionan igual que en la terminal.
+Cliente Git gráfico para Windows, macOS y Linux. Usa el `git` instalado en tu sistema, así que tus hooks, llaves SSH, GPG y gestores de credenciales funcionan igual que en la terminal.
 
 ![Gitora](docs/img/changes.png)
 
@@ -68,6 +68,24 @@ npm run dist:win
 ```
 
 Genera un instalador NSIS (español e inglés) y una versión portable en `release/`.
+
+### macOS
+
+Descarga el `.dmg` de [Releases](https://github.com/Malpor23/gitora/releases) (hay uno para Apple Silicon, `arm64`, y otro para Intel, `x64`), ábrelo y arrastra Gitora a Aplicaciones. Para compilar tú mismo, en un Mac:
+
+```bash
+npm run dist:mac
+```
+
+Genera un `.dmg` y un `.zip` por arquitectura en `release/`. Necesitas `git`: instala las herramientas de línea de comandos con `xcode-select --install` o usa Homebrew (`brew install git`).
+
+La app **no está notarizada** (no hay cuenta de Apple Developer): va firmada de forma ad-hoc, así que macOS avisa la primera vez. Ábrela con clic derecho, **Abrir**, o quita la cuarentena:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Gitora.app
+```
+
+> Los instaladores de macOS se generan en CI y no se han probado en un Mac real.
 
 ## Ejecutar sin instalar
 

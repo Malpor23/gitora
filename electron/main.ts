@@ -166,6 +166,10 @@ function openTerminal(dir: string, preferred: string) {
     else spawn('cmd.exe', ['/c', 'start', 'cmd.exe'], detached).unref();
     return;
   }
+  if (process.platform === 'darwin') {
+    spawn('open', ['-a', 'Terminal', dir], detached).unref();
+    return;
+  }
   // Linux: probamos las terminales más comunes en Arch y derivados.
   const candidates = [
     process.env['TERMINAL'], 'kitty', 'alacritty', 'wezterm', 'foot', 'konsole',

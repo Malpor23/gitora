@@ -2,7 +2,7 @@
   "name": "gitora",
   "productName": "Gitora",
   "version": "0.1.0",
-  "description": "Cliente Git gráfico, moderno y multidioma para Windows y Linux",
+  "description": "Cliente Git gráfico, moderno y multidioma para Windows, macOS y Linux",
   "author": "Manuel Gomez <mg230886@gmail.com>",
   "license": "MIT",
   "scripts": {
@@ -14,6 +14,7 @@
     "test:core": "npm run build:electron && node --test dist/electron/tests/*.test.js",
     "test:e2e": "npm run build && tsc -p tsconfig.e2e.json && node --test --test-concurrency=1 dist/e2e/*.test.js",
     "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac",
     "dist:linux": "npm run build && electron-builder --linux",
     "dist:arch": "npm run build && electron-builder --linux pacman",
     "dev:server": "npm run build:electron && node dist/electron/dev-server.js",

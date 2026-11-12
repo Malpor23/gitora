@@ -13,6 +13,8 @@ jobs:
             script: dist:linux
           - os: windows-latest
             script: dist:win
+          - os: macos-latest
+            script: dist:mac
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -33,3 +35,5 @@ jobs:
             release/*.tar.gz
             release/*.exe
             release/*.pacman
+            release/*.dmg
+            release/*.zip

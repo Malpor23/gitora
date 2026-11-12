@@ -2,7 +2,7 @@
 
 **English** | [Español](README.md)
 
-Graphical Git client for Windows and Linux. It uses the `git` installed on your system, so your hooks, SSH keys, GPG and credential managers work exactly as they do in the terminal.
+Graphical Git client for Windows, macOS and Linux. It uses the `git` installed on your system, so your hooks, SSH keys, GPG and credential managers work exactly as they do in the terminal.
 
 ![Gitora](docs/en/img/changes.png)
 
@@ -68,6 +68,24 @@ npm run dist:win
 ```
 
 Produces an NSIS installer (Spanish and English) and a portable build in `release/`.
+
+### macOS
+
+Download the `.dmg` from [Releases](https://github.com/Malpor23/gitora/releases) (one for Apple Silicon, `arm64`, and one for Intel, `x64`), open it and drag Gitora to Applications. To build it yourself, on a Mac:
+
+```bash
+npm run dist:mac
+```
+
+Produces a `.dmg` and a `.zip` per architecture in `release/`. You need `git`: install the command line tools with `xcode-select --install` or use Homebrew (`brew install git`).
+
+The app is **not notarized** (there is no Apple Developer account): it is ad-hoc signed, so macOS warns the first time. Open it with right click, **Open**, or remove the quarantine flag:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Gitora.app
+```
+
+> The macOS installers are built in CI and have not been tested on a real Mac.
 
 ## Run without installing
 

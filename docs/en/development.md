@@ -21,7 +21,7 @@ npm install
 | `GITORA_E2E_PR_REPO_URL=<url> GITORA_E2E_GITHUB_TOKEN=<token> npm run test:e2e` | Also runs `e2e/pull-requests.test.ts` against real GitHub: adds a token account, creates PRs (normal, draft and with an invalid target), lists them, checks one out and closes them at the end. The token (`repo` scope, e.g. `$(gh auth token)`) only lives in a temporary profile and is never printed |
 | `npm run launcher:install` / `launcher:uninstall` | Development desktop launcher with icon (Linux only) |
 | `npm run test:e2e` | End-to-end test in real Electron: toolbar (`toolbar`), changes and diff (`changes`), sidebar and history (`sidebar-history`), and shell, settings, palette and shortcuts (`app-shell`), about 600 cases in total, takes about 20 minutes (needs a display; on headless Linux, `xvfb-run -a npm run test:e2e`). To test against a real remote: `GITORA_E2E_REMOTE_URL=git@gitlab.com:user/repo.git npm run test:e2e` (uses your credentials; only touches the `gitora-e2e/*` branch and `gitora-e2e-*` tags it creates and deletes). Over HTTPS with your `gh` session, without touching your global configuration: `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0='credential.https://github.com.helper' GIT_CONFIG_VALUE_0='!gh auth git-credential'`. If the remote is empty, GitHub makes the first pushed branch the default branch and does not allow deleting it: the test warns about it and that branch must be deleted by hand |
-| `npm run dist:linux` / `dist:arch` / `dist:win` | Installers in `release/` |
+| `npm run dist:linux` / `dist:arch` / `dist:win` / `dist:mac` | Installers in `release/` |
 
 After changing code in `electron/`, run `npm start` again (or `npm run build:electron`): Electron loads `dist/electron`, not the `.ts` files.
 
@@ -47,11 +47,14 @@ The images in `docs/img/` (Spanish) and `docs/en/img/` (English) were taken in b
 npm run dist:linux     # AppImage, .pacman, .deb, .rpm, .tar.gz
 npm run dist:arch      # .pacman only
 npm run dist:win       # NSIS and portable; run on Windows
+npm run dist:mac       # .dmg and .zip (x64 and arm64); run on macOS
 ```
 
 Configuration is in `electron-builder.yml`. Runtime dependencies (`git`, `gtk3`, `nss`, `libsecret`...) are declared per format (`pacman`, `deb`, `rpm`).
 
-Pushing a `v*` tag runs the Release workflow (`.github/workflows/release.yml`), which builds the Linux and Windows installers and attaches them to a GitHub release.
+Pushing a `v*` tag runs the Release workflow (`.github/workflows/release.yml`), which builds the Linux, Windows and macOS installers and attaches them to a GitHub release.
+
+On macOS the signature is ad-hoc (`identity: "-"` and `hardenedRuntime: false` in `electron-builder.yml`): without it the `arm64` binaries do not start. Distributing without Gatekeeper warnings needs a Developer ID certificate and notarization (`CSC_LINK`, `CSC_KEY_PASSWORD` and `notarytool` credentials); that requires a paid Apple Developer account and is not configured.
 
 ## Icon and shortcuts
 
