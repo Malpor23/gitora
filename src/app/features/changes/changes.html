@@ -218,6 +218,7 @@
           s.selectedFile()?.conflicted ? 'none' : s.selectedFile()?.staged ? 'unstage' : 'stage'
         "
         [emptyText]="'changes.selectFile' | t"
+        [source]="{ repo: s.path(), kind: 'working', staged: !!s.selectedFile()?.staged }"
         (hunkAction)="onHunk($event)"
         (modeChange)="setDiffMode($event)"
       />

@@ -63,9 +63,13 @@
   </div>
 
   @if (f.isBinary) {
-    <div class="flex flex-col gap-2.5 items-center justify-center flex-1 text-muted p-6 text-center">
-      {{ 'diff.binary' | t }}
-    </div>
+    @if (imageRefs(); as img) {
+      <gt-image-diff [repo]="source()!.repo" [before]="img.before" [after]="img.after" />
+    } @else {
+      <div class="flex flex-col gap-2.5 items-center justify-center flex-1 text-muted p-6 text-center">
+        {{ 'diff.binary' | t }}
+      </div>
+    }
   } @else if (!f.hunks.length) {
     <div class="flex flex-col gap-2.5 items-center justify-center flex-1 text-muted p-6 text-center">
       {{ 'diff.empty' | t }}

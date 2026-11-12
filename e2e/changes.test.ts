@@ -857,13 +857,55 @@ describe('panel Cambios, visor de diff, conflictos y consola (E2E)', { skip: has
       await viewer().getByText(/Archivo binario/).waitFor();
     });
 
-    it('imagen PNG: no hay vista previa, se trata como binario', async () => {
-      const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==', 'base64');
-      writeFileSync(file('pic.png'), png);
+    const RED = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAIAAAA7ljmRAAAAEElEQVR4nGO4o6EBRww4OQAa3g4RLYR9sQAAAABJRU5ErkJggg==', 'base64');
+    const BLUE = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAAEUlEQVR4nGPQiLqDFTEMpAQAGdNBof4aAEcAAAAASUVORK5CYII=', 'base64');
+
+    it('imagen PNG nueva (sin seguimiento): muestra la vista previa en vez del aviso de binario', async () => {
+      writeFileSync(file('pic.png'), RED);
       await sync();
       await selectRow('unstaged', 'pic.png');
-      await viewer().getByText(/Archivo binario/).waitFor();
-      assert.equal(await viewer().locator('img').count(), 0, 'no hay vista previa de imagen en el visor');
+      await viewer().locator('gt-image-diff img').waitFor();
+      assert.equal(await viewer().locator('gt-image-diff img').count(), 1, 'solo existe la versión nueva');
+      assert.equal(await viewer().getByText(/Archivo binario/).count(), 0);
+      assert.equal(await viewer().locator('gt-image-diff button').count(), 0, 'sin versión anterior no hay modos de comparación');
+      const src = (await viewer().locator('gt-image-diff img').getAttribute('src')) ?? '';
+      assert.ok(src.startsWith('data:image/png;base64,'), 'la imagen llega como data URL PNG');
+      await until(async () => (await viewer().locator('gt-image-diff figcaption').innerText()).includes('4 × 3'), 'dimensiones 4 × 3');
+    });
+
+    it('imagen PNG modificada: compara antes y después en lado a lado, deslizador y mezcla', async () => {
+      writeFileSync(file('pic2.png'), RED);
+      g('add', 'pic2.png');
+      g('commit', '-m', 'añade pic2');
+      writeFileSync(file('pic2.png'), BLUE);
+      await sync();
+      await selectRow('unstaged', 'pic2.png');
+      const imgs = viewer().locator('gt-image-diff img');
+      await imgs.first().waitFor();
+      await until(async () => (await imgs.count()) === 2, 'dos imágenes');
+      const caps = await viewer().locator('gt-image-diff figcaption').allInnerTexts();
+      assert.ok(caps[0].includes('Antes') && caps[0].includes('4 × 3'), `antes: ${caps[0]}`);
+      assert.ok(caps[1].includes('Después') && caps[1].includes('8 × 6'), `después: ${caps[1]}`);
+
+      await viewer().getByRole('button', { name: 'Deslizador' }).click();
+      const slider = viewer().locator('gt-image-diff input[type=range]');
+      await slider.fill('30');
+      await until(async () => ((await imgs.nth(1).getAttribute('style')) ?? '').includes('70%'), 'recorte al 70 %');
+
+      await viewer().getByRole('button', { name: 'Mezcla' }).click();
+      await viewer().locator('gt-image-diff input[type=range]').fill('25');
+      await until(async () => ((await imgs.nth(1).getAttribute('style')) ?? '').includes('opacity: 0.25'), 'opacidad 0.25');
+    });
+
+    it('imagen PNG preparada compara HEAD contra el índice', async () => {
+      writeFileSync(file('pic3.png'), RED);
+      g('add', 'pic3.png');
+      g('commit', '-m', 'añade pic3');
+      writeFileSync(file('pic3.png'), BLUE);
+      g('add', 'pic3.png');
+      await sync();
+      await selectRow('staged', 'pic3.png');
+      await until(async () => (await viewer().locator('gt-image-diff img').count()) === 2, 'antes y después');
     });
 
     it('archivo nuevo vacío (sin seguimiento) muestra el archivo seleccionado, no el aviso de "selecciona un archivo"', async () => {

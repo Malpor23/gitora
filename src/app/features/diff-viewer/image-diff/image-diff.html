@@ -1,0 +1,147 @@
+@if (loading()) {
+  <div class="flex flex-1 items-center justify-center p-6 text-muted" role="status">
+    {{ 'diff.imageLoading' | t }}
+  </div>
+} @else if (!beforeImg() && !afterImg()) {
+  <div class="flex flex-1 items-center justify-center p-6 text-center text-muted">
+    {{ 'diff.imageUnavailable' | t }}
+  </div>
+} @else {
+  @if (canCompare()) {
+    <div
+      class="flex flex-none items-center gap-2 border-b border-line px-3 py-1.5"
+      role="group"
+      [attr.aria-label]="'diff.imageMode' | t"
+    >
+      <button
+        class="btn small"
+        [class.primary]="mode() === 'side'"
+        [attr.aria-pressed]="mode() === 'side'"
+        (click)="mode.set('side')"
+      >
+        {{ 'diff.imageSide' | t }}
+      </button>
+      <button
+        class="btn small"
+        [class.primary]="mode() === 'swipe'"
+        [attr.aria-pressed]="mode() === 'swipe'"
+        (click)="mode.set('swipe')"
+      >
+        {{ 'diff.imageSwipe' | t }}
+      </button>
+      <button
+        class="btn small"
+        [class.primary]="mode() === 'blend'"
+        [attr.aria-pressed]="mode() === 'blend'"
+        (click)="mode.set('blend')"
+      >
+        {{ 'diff.imageBlend' | t }}
+      </button>
+    </div>
+  }
+
+  <div class="flex min-h-0 flex-1 flex-col overflow-auto p-3">
+    @switch (activeMode()) {
+      @case ('side') {
+        <div
+          class="grid flex-1 gap-3"
+          [class]="beforeImg() && afterImg() ? 'grid-cols-2' : 'grid-cols-1'"
+        >
+          @if (beforeImg(); as b) {
+            <figure class="m-0 flex min-w-0 flex-col gap-1.5">
+              <figcaption class="text-[.85em] text-muted">
+                <span class="text-diff-del">{{ 'diff.imageBefore' | t }}</span>
+                @if (beforeDims(); as d) {
+                  · {{ d }}
+                }
+                · {{ formatSize(b.size) }}
+              </figcaption>
+              <div
+                class="image-checker flex flex-1 items-center justify-center rounded-md border border-line p-2"
+              >
+                <img
+                  class="max-h-full max-w-full object-contain"
+                  [src]="b.url"
+                  [alt]="'diff.imageBeforeAlt' | t"
+                  (load)="onLoad($event, 'before')"
+                />
+              </div>
+            </figure>
+          }
+          @if (afterImg(); as a) {
+            <figure class="m-0 flex min-w-0 flex-col gap-1.5">
+              <figcaption class="text-[.85em] text-muted">
+                <span class="text-diff-add">{{ 'diff.imageAfter' | t }}</span>
+                @if (afterDims(); as d) {
+                  · {{ d }}
+                }
+                · {{ formatSize(a.size) }}
+              </figcaption>
+              <div
+                class="image-checker flex flex-1 items-center justify-center rounded-md border border-line p-2"
+              >
+                <img
+                  class="max-h-full max-w-full object-contain"
+                  [src]="a.url"
+                  [alt]="'diff.imageAfterAlt' | t"
+                  (load)="onLoad($event, 'after')"
+                />
+              </div>
+            </figure>
+          }
+        </div>
+      }
+      @case ('swipe') {
+        <div class="image-checker grid flex-1 place-items-center rounded-md border border-line p-2">
+          <img
+            class="max-h-full max-w-full object-contain [grid-area:1/1]"
+            [src]="afterImg()!.url"
+            [alt]="'diff.imageAfterAlt' | t"
+            (load)="onLoad($event, 'after')"
+          />
+          <img
+            class="max-h-full max-w-full object-contain [grid-area:1/1]"
+            [style.clip-path]="clip()"
+            [src]="beforeImg()!.url"
+            [alt]="'diff.imageBeforeAlt' | t"
+            (load)="onLoad($event, 'before')"
+          />
+        </div>
+      }
+      @case ('blend') {
+        <div class="image-checker grid flex-1 place-items-center rounded-md border border-line p-2">
+          <img
+            class="max-h-full max-w-full object-contain [grid-area:1/1]"
+            [src]="beforeImg()!.url"
+            [alt]="'diff.imageBeforeAlt' | t"
+            (load)="onLoad($event, 'before')"
+          />
+          <img
+            class="max-h-full max-w-full object-contain [grid-area:1/1]"
+            [style.opacity]="opacity()"
+            [src]="afterImg()!.url"
+            [alt]="'diff.imageAfterAlt' | t"
+            (load)="onLoad($event, 'after')"
+          />
+        </div>
+      }
+    }
+
+    @if (activeMode() !== 'side') {
+      <div class="mt-3 flex flex-none items-center gap-3 text-[.85em] text-muted">
+        <span class="text-diff-del">{{ 'diff.imageBefore' | t }}</span>
+        <input
+          class="flex-1"
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          [value]="position()"
+          [attr.aria-label]="(activeMode() === 'swipe' ? 'diff.imageSwipe' : 'diff.imageBlend') | t"
+          (input)="onSlider($event)"
+        />
+        <span class="text-diff-add">{{ 'diff.imageAfter' | t }}</span>
+      </div>
+    }
+  </div>
+}

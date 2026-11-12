@@ -22,6 +22,7 @@ export type {
   GitFlowConfig,
   GitFlowKind,
   GitIdentity,
+  ImageBlob,
   LogOptions,
   MergeOptions,
   NewAccountInput,

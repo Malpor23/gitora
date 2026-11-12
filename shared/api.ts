@@ -12,6 +12,7 @@ import type {
   ConflictVersions,
   CreateTagOptions,
   DiffFile,
+  ImageBlob,
   FetchOptions,
   FileSize,
   GitFlowConfig,
@@ -96,6 +97,11 @@ export interface GitOps {
   ): Promise<DiffFile[]>;
   diffRange(repo: string, from: string, to: string, path: string | null): Promise<DiffFile[]>;
   fileAt(repo: string, rev: string, path: string): Promise<string>;
+  /**
+   * Imagen de un archivo para el diff. `rev`: null = árbol de trabajo, '' = índice,
+   * otro valor = commit o referencia. Devuelve null si no es imagen, no existe o es muy grande.
+   */
+  imageBlob(repo: string, rev: string | null, path: string): Promise<ImageBlob | null>;
   blame(repo: string, path: string, rev: string | null): Promise<BlameLine[]>;
   reflog(repo: string, limit: number): Promise<ReflogEntry[]>;
   formatPatch(repo: string, hashes: string[], outDir: string): Promise<string[]>;
@@ -241,6 +247,7 @@ export const GIT_OP_NAMES: GitOpName[] = [
   'diffCommit',
   'diffRange',
   'fileAt',
+  'imageBlob',
   'blame',
   'reflog',
   'formatPatch',

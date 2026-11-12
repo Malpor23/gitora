@@ -155,6 +155,14 @@ export interface DiffFile {
   hunks: DiffHunk[];
 }
 
+/** Contenido de una imagen del repositorio, listo para mostrarse en el diff. */
+export interface ImageBlob {
+  mime: string;
+  /** Bytes de la imagen en base64. */
+  base64: string;
+  size: number;
+}
+
 export interface ConflictVersions {
   base: string | null;
   ours: string | null;

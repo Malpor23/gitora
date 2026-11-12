@@ -28,6 +28,8 @@ export interface RunOptions {
   /** Configuración extra `-c clave=valor` (autenticación por cabecera, etc.). */
   config?: string[];
   timeoutMs?: number;
+  /** 'base64' devuelve stdout codificado sin pasar por UTF-8 (contenido binario como imágenes). */
+  encoding?: 'base64';
 }
 
 type Listener<T> = (payload: T) => void;
@@ -133,7 +135,7 @@ export class GitRunner {
 
       child.on('close', (code) => {
         if (timer) clearTimeout(timer);
-        const stdout = Buffer.concat(out).toString('utf8');
+        const stdout = Buffer.concat(out).toString(opts.encoding ?? 'utf8');
         const stderr = Buffer.concat(err).toString('utf8');
         entry.running = false;
         entry.exitCode = code;

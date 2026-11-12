@@ -1,9 +1,10 @@
 import { existsSync, promises as fs } from 'node:fs';
 import * as path from 'node:path';
 import { GitOps } from '../../shared/api';
+import { imageMime, MAX_IMAGE_BYTES } from '../../shared/image';
 import type {
   BenchmarkResult, BlameLine, Branch, CloneOptions, Commit, CommitDetails, CommitOptions, ConflictVersions,
-  CreateTagOptions, DiffFile, FetchOptions, FileChange, FileSize, GitFlowConfig, GitFlowKind, GitIdentity, LogOptions, MergeOptions,
+  CreateTagOptions, DiffFile, FetchOptions, FileChange, FileSize, GitFlowConfig, GitFlowKind, GitIdentity, ImageBlob, LogOptions, MergeOptions,
   PullOptions, PushOptions, RebaseOptions, RebaseTodoItem, ReflogEntry, Remote, RepoInfo,
   RepoOperationState, RepoStats, RepoStatus, ResetMode, Stash, StashOptions, Submodule, Tag, Worktree,
 } from '@core/models';
@@ -377,6 +378,35 @@ export class GitService implements GitOps {
 
   async fileAt(repo: string, rev: string, file: string): Promise<string> {
     return this.git(repo, ['show', `${rev}:${file}`], { silent: true });
+  }
+
+  async imageBlob(repo: string, rev: string | null, file: string): Promise<ImageBlob | null> {
+    const mime = imageMime(file);
+    if (!mime) return null;
+    if (rev === null) {
+      // Árbol de trabajo: la ruta debe quedar dentro del repositorio.
+      const abs = path.resolve(repo, file);
+      const rel = path.relative(repo, abs);
+      if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) return null;
+      try {
+        const st = await fs.stat(abs);
+        if (!st.isFile() || st.size > MAX_IMAGE_BYTES) return null;
+        return { mime, base64: (await fs.readFile(abs)).toString('base64'), size: st.size };
+      } catch {
+        return null;
+      }
+    }
+    // Una revisión que empieza por "-" git la leería como opción.
+    if (rev.startsWith('-')) return null;
+    const spec = `${rev}:${file}`;
+    try {
+      const size = Number((await this.git(repo, ['cat-file', '-s', spec], { silent: true })).trim());
+      if (!Number.isFinite(size) || size > MAX_IMAGE_BYTES) return null;
+      const base64 = await this.git(repo, ['cat-file', 'blob', spec], { silent: true, encoding: 'base64' });
+      return { mime, base64: base64.replace(/\s/g, ''), size };
+    } catch {
+      return null;
+    }
   }
 
   async blame(repo: string, file: string, rev: string | null): Promise<BlameLine[]> {

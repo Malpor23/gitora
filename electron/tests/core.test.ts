@@ -470,3 +470,55 @@ describe('normalizeApi', () => {
     assert.equal(normalizeApi('gitlab', 'https://git.acme.io/gl/api/v4'), 'https://git.acme.io/gl/api/v4');
   });
 });
+
+describe('imágenes en el diff (git real)', () => {
+  const imgRepo = path.join(tmp, 'img-repo');
+  // Bytes que no son UTF-8 válido: si pasaran por una cadena de texto se corromperían.
+  const v1 = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xff, 0xfe, 0x00, 0x80, 0x01]);
+  const v2 = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xc3, 0x28, 0x00, 0x80, 0x02]);
+  const v3 = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xa0, 0xa1, 0x00, 0x80, 0x03]);
+  let first = '';
+
+  before(async () => {
+    await git.init(imgRepo, false, 'main');
+    await git.setIdentity(imgRepo, { name: 'Prueba', email: 'prueba@example.com' }, false);
+    await git.configSet(imgRepo, 'commit.gpgsign', 'false', 'local');
+    writeFileSync(path.join(imgRepo, 'logo.png'), v1);
+    writeFileSync(path.join(imgRepo, 'nota.txt'), 'texto\n');
+    await git.stageAll(imgRepo);
+    first = await git.commit(imgRepo, { message: 'Imagen inicial' });
+    writeFileSync(path.join(imgRepo, 'logo.png'), v2);
+    await git.stage(imgRepo, ['logo.png']);
+    writeFileSync(path.join(imgRepo, 'logo.png'), v3);
+  });
+
+  it('lee la imagen binaria intacta en un commit, el índice y el árbol de trabajo', async () => {
+    const atCommit = await git.imageBlob(imgRepo, first, 'logo.png');
+    assert.equal(atCommit?.mime, 'image/png');
+    assert.equal(atCommit?.size, v1.length);
+    assert.ok(Buffer.from(atCommit!.base64, 'base64').equals(v1));
+
+    const atIndex = await git.imageBlob(imgRepo, '', 'logo.png');
+    assert.ok(Buffer.from(atIndex!.base64, 'base64').equals(v2));
+
+    const atWorktree = await git.imageBlob(imgRepo, null, 'logo.png');
+    assert.ok(Buffer.from(atWorktree!.base64, 'base64').equals(v3));
+  });
+
+  it('devuelve null si no es imagen, no existe en esa revisión o excede el límite', async () => {
+    assert.equal(await git.imageBlob(imgRepo, first, 'nota.txt'), null);
+    assert.equal(await git.imageBlob(imgRepo, first, 'no-existe.png'), null);
+    writeFileSync(path.join(imgRepo, 'grande.png'), Buffer.alloc(11 * 1024 * 1024, 1));
+    assert.equal(await git.imageBlob(imgRepo, null, 'grande.png'), null);
+  });
+
+  it('rechaza revisiones que parecen opciones y rutas fuera del repositorio', async () => {
+    assert.equal(await git.imageBlob(imgRepo, '--help', 'logo.png'), null);
+    assert.equal(await git.imageBlob(imgRepo, null, '../repo/a.png'), null);
+    assert.equal(await git.imageBlob(imgRepo, null, path.join(tmp, 'repo', 'a.png')), null);
+  });
+
+  it('fileAt sigue devolviendo texto como antes', async () => {
+    assert.equal(await git.fileAt(imgRepo, first, 'nota.txt'), 'texto\n');
+  });
+});

@@ -237,6 +237,7 @@
         <div class="flex min-h-0 min-w-0 flex-col">
           <gt-diff-viewer
             [file]="fileDiff()"
+            [source]="{ repo: s.path(), kind: 'commit', hash: d.hash }"
             [mode]="settings.settings()?.diffViewMode ?? 'unified'"
             (modeChange)="setDiffMode($event)"
           />

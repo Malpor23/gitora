@@ -2,7 +2,14 @@ import { Component, computed, effect, input, output, signal } from '@angular/cor
 
 import { TPipe } from '@core/i18n/i18n';
 import { DiffFile, DiffHunk, DiffLine } from '@core/models';
+import { imageMime } from '../../../../shared/image';
 import { Icon } from '@shared/components';
+import { ImageDiff, ImageRef } from './image-diff/image-diff';
+
+/** De dónde sale el diff, para poder pedir las dos versiones de una imagen. */
+export type DiffSource =
+  | { repo: string; kind: 'working'; staged: boolean }
+  | { repo: string; kind: 'commit'; hash: string };
 
 export type HunkMode = 'stage' | 'unstage' | 'discard';
 
@@ -21,7 +28,7 @@ interface SplitRow {
 const LARGE = 4000;
 
 @Component({
-  imports: [Icon, TPipe],
+  imports: [Icon, ImageDiff, TPipe],
   selector: 'gt-diff-viewer',
   host: { class: 'flex flex-col min-h-0 h-full' },
   templateUrl: './diff-viewer.html',
@@ -31,6 +38,8 @@ export class DiffViewer {
   readonly mode = input<'unified' | 'split'>('unified');
   readonly actions = input<'stage' | 'unstage' | 'none'>('none');
   readonly emptyText = input('');
+  /** Origen del diff; sin él los archivos binarios no pueden mostrar su vista previa. */
+  readonly source = input<DiffSource | null>(null);
   readonly hunkAction = output<HunkActionEvent>();
   readonly modeChange = output<'unified' | 'split'>();
 
@@ -43,6 +52,20 @@ export class DiffViewer {
   );
   readonly tooLarge = computed(() => this.lineCount() > LARGE);
   readonly selectedCount = computed(() => this.selection()?.lines.size ?? 0);
+  /** Versiones anterior y nueva cuando el archivo binario es una imagen soportada. */
+  readonly imageRefs = computed<{ before: ImageRef | null; after: ImageRef | null } | null>(() => {
+    const f = this.file();
+    const src = this.source();
+    if (!f?.isBinary || !src || !imageMime(f.isDeleted ? f.oldPath : f.newPath)) return null;
+    const before = (rev: string | null): ImageRef | null =>
+      f.isNew ? null : { rev, path: f.oldPath };
+    const after = (rev: string | null): ImageRef | null =>
+      f.isDeleted ? null : { rev, path: f.newPath };
+    if (src.kind === 'commit') return { before: before(`${src.hash}^`), after: after(src.hash) };
+    return src.staged
+      ? { before: before('HEAD'), after: after('') }
+      : { before: before(''), after: after(null) };
+  });
   readonly splitRows = computed(() => (this.file()?.hunks ?? []).map((h) => toSplit(h)));
 
   constructor() {

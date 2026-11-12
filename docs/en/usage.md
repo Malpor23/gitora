@@ -25,6 +25,16 @@ Central panel: **unstaged** and **staged** files. You can stage or unstage per f
 
 The diff supports unified and side-by-side views. Hunks can also be discarded from here.
 
+### Images
+
+Images (PNG, JPEG, GIF, WebP, AVIF, BMP and ICO) do not show the "binary file" notice: the viewer shows the old and new versions with their dimensions and size, over a checkerboard background so transparency is visible. There are three modes:
+
+- **Side by side**: both versions next to each other.
+- **Slider**: both overlaid; the control splits the image between "Before" and "After".
+- **Blend**: the new version over the old one with adjustable opacity.
+
+It works in Changes (unstaged against the index, staged against `HEAD`) and in the history (the commit against its first parent). If the file is new or deleted, only the existing version is shown. Images over 10 MB are not shown; SVG files appear as text.
+
 ## History
 
 ![History](img/history.png)
@@ -133,7 +143,7 @@ Secrets are encrypted with the system keyring and never reach the interface.
 | Area | Features |
 |------|----------|
 | Repositories | Open, clone, create, tabs, recent, terminal and file explorer |
-| Changes | Stage per file, hunk and line; discard; ignore; `clean` with preview |
+| Changes | Stage per file, hunk and line; discard; ignore; `clean` with preview; image diff (side by side, slider and blend) |
 | Commit | Summary and description, amend, sign-off, skip hooks, commit and push |
 | History | Graph, search, file history, blame |
 | Branches | Create, checkout, rename, delete (local and remote), upstream |

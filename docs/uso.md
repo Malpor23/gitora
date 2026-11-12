@@ -25,6 +25,16 @@ Panel central: archivos **sin preparar** y **preparados**. Se pueden preparar o 
 
 El diff admite vista unificada y en paralelo. Desde aquí también se descartan hunks.
 
+### Imágenes
+
+Las imágenes (PNG, JPEG, GIF, WebP, AVIF, BMP e ICO) no muestran el aviso de «archivo binario»: el visor enseña la versión anterior y la nueva, con sus dimensiones y su peso, sobre un fondo de tablero para ver la transparencia. Hay tres modos:
+
+- **Lado a lado**: las dos versiones una junto a la otra.
+- **Deslizador**: las dos superpuestas; el control reparte la imagen entre «Antes» y «Después».
+- **Mezcla**: la nueva sobre la anterior con opacidad ajustable.
+
+Funciona en Cambios (sin preparar contra el índice, preparados contra `HEAD`) y en el historial (el commit contra su primer padre). Si el archivo es nuevo o fue eliminado solo se muestra la versión que existe. No se muestran imágenes de más de 10 MB; los SVG se ven como texto.
+
 ## Historial
 
 ![Historial](img/history.png)
@@ -133,7 +143,7 @@ Los secretos se cifran con el llavero del sistema y no llegan a la interfaz.
 | Área | Funciones |
 |------|-----------|
 | Repositorios | Abrir, clonar, crear, pestañas, recientes, terminal y explorador |
-| Cambios | Stage por archivo, hunk y línea; descartar; ignorar; `clean` con vista previa |
+| Cambios | Stage por archivo, hunk y línea; descartar; ignorar; `clean` con vista previa; diff de imágenes (lado a lado, deslizador y mezcla) |
 | Commit | Resumen y descripción, enmendar, sign-off, omitir hooks, commit y push |
 | Historial | Grafo, búsqueda, historial de archivo, blame |
 | Ramas | Crear, checkout, renombrar, eliminar (local y remota), upstream |
