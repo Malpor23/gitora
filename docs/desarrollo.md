@@ -52,7 +52,7 @@ npm run dist:mac       # .dmg y .zip (x64 y arm64); ejecutar en macOS
 
 La configuración está en `electron-builder.yml`. Las dependencias de ejecución (`git`, `gtk3`, `nss`, `libsecret`...) se declaran por formato (`pacman`, `deb`, `rpm`).
 
-Al publicar un tag `v*` se ejecuta el workflow Release (`.github/workflows/release.yml`), que compila los instaladores de Linux, Windows y macOS y los adjunta a un release de GitHub.
+Al publicar un tag `v*` se ejecuta el workflow Release (`.github/workflows/release.yml`), que compila los instaladores de Linux, Windows y macOS y los adjunta a un release de GitHub. El job de macOS ejecuta antes `scripts/verify-macos.sh`, que monta cada `.dmg` y comprueba el acceso a Aplicaciones, la arquitectura, que la firma sea válida y ad-hoc, y que la app arranque (esto último solo con el binario de la arquitectura del runner). Si falla, no se publica nada. El workflow también se puede lanzar a mano (`gh workflow run release.yml`): compila y verifica sin publicar, porque el release solo se crea con un tag.
 
 En macOS la firma es ad-hoc (`identity: "-"` y `hardenedRuntime: false` en `electron-builder.yml`): sin ella los binarios `arm64` no arrancan. Para distribuir sin avisos de Gatekeeper hace falta un certificado Developer ID y notarización (variables `CSC_LINK`, `CSC_KEY_PASSWORD` y las credenciales de `notarytool`); eso requiere una cuenta de Apple Developer de pago y no está configurado.
 

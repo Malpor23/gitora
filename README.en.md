@@ -71,7 +71,7 @@ Produces an NSIS installer (Spanish and English) and a portable build in `releas
 
 ### macOS
 
-Download the `.dmg` from [Releases](https://github.com/Malpor23/gitora/releases) (one for Apple Silicon, `arm64`, and one for Intel, `x64`), open it and drag Gitora to Applications. To build it yourself, on a Mac:
+Download the `.dmg` from [Releases](https://github.com/Malpor23/gitora/releases) (one for Apple Silicon, `arm64`, and one for Intel, `x64`), open it and drag Gitora to Applications. It requires macOS 13 or later. To build it yourself, on a Mac:
 
 ```bash
 npm run dist:mac
