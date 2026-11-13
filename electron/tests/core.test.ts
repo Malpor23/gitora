@@ -4,6 +4,9 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { after, before, describe, it } from 'node:test';
+import { appendCoAuthors, parseCoAuthor } from '../../shared/coauthors';
+import { applyCommitType, currentCommitType, DEFAULT_COMMIT_TYPES, hasBreakingMark, parseCommitTypes, toggleBreaking } from '../../shared/conventional';
+import { issueRuleFromRemote, linkifyIssues, parseIssueRule } from '../../shared/issue-links';
 import { buildHunkPatch } from '../../shared/patch';
 import { appMenuTemplate, REPOSITORY_MENU } from '../app-menu';
 import { createEditorHelper } from '../git/editor-helper';
@@ -520,5 +523,174 @@ describe('imágenes en el diff (git real)', () => {
 
   it('fileAt sigue devolviendo texto como antes', async () => {
     assert.equal(await git.fileAt(imgRepo, first, 'nota.txt'), 'texto\n');
+  });
+});
+
+describe('co-autores en el commit', () => {
+  const coRepo = path.join(tmp, 'co-repo');
+  const ana = 'Ana Pérez <ana@example.com>';
+  const luis = 'Luis Gómez <luis@example.com>';
+  const body = (ref = 'HEAD') => execFileSync('git', ['log', '-1', '--format=%B', ref], { cwd: coRepo }).toString();
+  const trailers = (msg: string) =>
+    execFileSync('git', ['interpret-trailers', '--parse'], { cwd: coRepo, input: msg }).toString().trim().split('\n');
+
+  before(async () => {
+    await git.init(coRepo, false, 'main');
+    await git.setIdentity(coRepo, { name: 'Prueba', email: 'prueba@example.com' }, false);
+    await git.configSet(coRepo, 'commit.gpgsign', 'false', 'local');
+    writeFileSync(path.join(coRepo, 'a.txt'), '1\n');
+    await git.stageAll(coRepo);
+  });
+
+  it('valida el formato "Nombre <correo>" y rechaza saltos de línea y correos inválidos', () => {
+    assert.deepEqual(parseCoAuthor('  Ana Pérez <ana@example.com> '), { name: 'Ana Pérez', email: 'ana@example.com' });
+    assert.equal(parseCoAuthor('ana@example.com'), null);
+    assert.equal(parseCoAuthor('Ana <ana>'), null);
+    assert.equal(parseCoAuthor('<ana@example.com>'), null);
+    assert.equal(parseCoAuthor('Ana\nSigned-off-by: X <x@y.zz> <ana@example.com>'), null);
+    assert.equal(parseCoAuthor('Ana <ana@example.com>\nOtro: x'), null);
+  });
+
+  it('añade los trailers al final, sin repetir los que ya están', () => {
+    assert.equal(appendCoAuthors('Asunto', []), 'Asunto');
+    assert.equal(
+      appendCoAuthors('Asunto\n\nCuerpo', [ana, luis]),
+      `Asunto\n\nCuerpo\n\nCo-authored-by: ${ana}\nCo-authored-by: ${luis}`,
+    );
+    // Ya hay un bloque de trailers: se continúa en él, sin línea en blanco de por medio.
+    assert.equal(
+      appendCoAuthors(`Asunto\n\nCo-authored-by: ${ana}`, [luis, 'ANA PÉREZ <ANA@example.com>']),
+      `Asunto\n\nCo-authored-by: ${ana}\nCo-authored-by: ${luis}`,
+    );
+    // Solo asunto: los trailers van tras una línea en blanco.
+    assert.equal(appendCoAuthors('Asunto', [ana]), `Asunto\n\nCo-authored-by: ${ana}`);
+  });
+
+  it('el commit lleva los co-autores como trailers que git reconoce, junto al Signed-off-by', async () => {
+    await git.commit(coRepo, { message: 'Primero\n\nCuerpo', coAuthors: [ana, luis], signoff: true });
+    const msg = body();
+    assert.deepEqual(trailers(msg), [
+      `Co-authored-by: ${ana}`,
+      `Co-authored-by: ${luis}`,
+      'Signed-off-by: Prueba <prueba@example.com>',
+    ]);
+    assert.ok(msg.startsWith('Primero\n\nCuerpo\n'));
+  });
+
+  it('al enmendar no duplica los co-autores que el mensaje ya tenía', async () => {
+    const previous = (await git.lastCommitMessage(coRepo)).trim();
+    await git.commit(coRepo, { message: previous, coAuthors: [ana], amend: true });
+    const lines = trailers(body()).filter((l) => l.startsWith('Co-authored-by:'));
+    assert.deepEqual(lines, [`Co-authored-by: ${ana}`, `Co-authored-by: ${luis}`]);
+  });
+
+  it('rechaza un co-autor inválido sin crear el commit', async () => {
+    writeFileSync(path.join(coRepo, 'b.txt'), '2\n');
+    await git.stageAll(coRepo);
+    const before = (await git.log(coRepo, {})).length;
+    await assert.rejects(() => git.commit(coRepo, { message: 'Segundo', coAuthors: ['sin correo'] }), /co-autor/i);
+    assert.equal((await git.log(coRepo, {})).length, before);
+  });
+
+  it('sin co-autores el mensaje queda como antes', async () => {
+    await git.commit(coRepo, { message: 'Tercero\n\nSolo cuerpo' });
+    assert.equal(body().trim(), 'Tercero\n\nSolo cuerpo');
+  });
+});
+
+describe('ayuda para commits convencionales', () => {
+  const known = [...DEFAULT_COMMIT_TYPES];
+
+  it('añade el tipo al resumen o reemplaza el que ya tenía, conservando alcance y "!"', () => {
+    assert.equal(applyCommitType('', 'feat', known), 'feat: ');
+    assert.equal(applyCommitType('arregla el login', 'fix', known), 'fix: arregla el login');
+    assert.equal(applyCommitType('feat: algo', 'fix', known), 'fix: algo');
+    assert.equal(applyCommitType('feat(ui)!: cambio', 'fix', known), 'fix(ui)!: cambio');
+    assert.equal(applyCommitType('feat: algo', 'feat', known), 'feat: algo');
+  });
+
+  it('no confunde un resumen con "algo:" con un tipo conocido', () => {
+    assert.equal(applyCommitType('Nota: revisar', 'feat', known), 'feat: Nota: revisar');
+    assert.equal(currentCommitType('Nota: revisar', known), null);
+    assert.equal(currentCommitType('fix(api): x', known), 'fix');
+  });
+
+  it('marca y desmarca el cambio incompatible solo si hay tipo', () => {
+    assert.equal(toggleBreaking('feat: x', known), 'feat!: x');
+    assert.equal(toggleBreaking('feat!: x', known), 'feat: x');
+    assert.equal(toggleBreaking('feat(ui): x', known), 'feat(ui)!: x');
+    assert.equal(toggleBreaking('feat(ui)!: x', known), 'feat(ui): x');
+    assert.equal(toggleBreaking('sin tipo', known), 'sin tipo');
+    assert.equal(hasBreakingMark('feat!: x', known), true);
+    assert.equal(hasBreakingMark('feat: x', known), false);
+  });
+
+  it('lee la lista de tipos del repositorio y descarta lo inválido y lo repetido', () => {
+    assert.deepEqual(parseCommitTypes('feat, fix ,Docs docs'), ['feat', 'fix', 'docs']);
+    assert.deepEqual(parseCommitTypes('fe at!, 1x, ok-1'), ['fe', 'ok-1']);
+    assert.deepEqual(parseCommitTypes(''), []);
+    assert.deepEqual(parseCommitTypes(undefined), []);
+    assert.equal(parseCommitTypes(Array.from({ length: 60 }, (_, i) => `t${i}`).join(',')).length, 30);
+  });
+});
+
+describe('enlaces a issues en los mensajes', () => {
+  const num = { pattern: 'number', url: 'https://x.test/issues/{id}' } as const;
+  const key = { pattern: 'key', url: 'https://jira.test/browse/{id}' } as const;
+
+  it('convierte #123 en enlace sin tocar el resto del texto', () => {
+    assert.deepEqual(linkifyIssues('Arregla #12 y (#34).', num), [
+      { text: 'Arregla ' },
+      { text: '#12', url: 'https://x.test/issues/12' },
+      { text: ' y (' },
+      { text: '#34', url: 'https://x.test/issues/34' },
+      { text: ').' },
+    ]);
+    assert.equal(linkifyIssues('sin referencias', num).length, 1);
+    assert.deepEqual(linkifyIssues('#7', num), [{ text: '#7', url: 'https://x.test/issues/7' }]);
+  });
+
+  it('no enlaza "#" sueltos, colores, anclas ni números pegados a una palabra', () => {
+    for (const t of ['# Título', 'color #fff', 'a#12', 'https://x.test/p#12', '##12', 'v#x']) {
+      assert.deepEqual(linkifyIssues(t, num), [{ text: t }], t);
+    }
+  });
+
+  it('reconoce claves tipo ABC-123 y no confunde palabras en minúscula ni versiones', () => {
+    assert.deepEqual(linkifyIssues('Cierra PROJ-42, no foo-1 ni a-PROJ-1', key), [
+      { text: 'Cierra ' },
+      { text: 'PROJ-42', url: 'https://jira.test/browse/PROJ-42' },
+      { text: ', no foo-1 ni a-PROJ-1' },
+    ]);
+  });
+
+  it('sin regla o con un texto enorme devuelve el texto tal cual', () => {
+    assert.deepEqual(linkifyIssues('Arregla #1', null), [{ text: 'Arregla #1' }]);
+    const big = '#1 '.repeat(10_000);
+    assert.deepEqual(linkifyIssues(big, num), [{ text: big }]);
+  });
+
+  it('valida la regla del repositorio: solo http(s) y con {id}', () => {
+    assert.deepEqual(parseIssueRule(undefined, 'https://x.test/i/{id}'), { pattern: 'number', url: 'https://x.test/i/{id}' });
+    assert.deepEqual(parseIssueRule('KEY', 'http://x.test/{id}'), { pattern: 'key', url: 'http://x.test/{id}' });
+    assert.equal(parseIssueRule('number', 'javascript:alert({id})'), null);
+    assert.equal(parseIssueRule('number', 'https://x.test/sin-id'), null);
+    assert.equal(parseIssueRule('otra', 'https://x.test/{id}'), null);
+    assert.equal(parseIssueRule('number', undefined), null);
+    assert.equal(parseIssueRule('number', `https://x.test/${'a'.repeat(400)}/{id}`), null);
+  });
+
+  it('deduce la regla del remoto para GitHub, GitLab, Codeberg y Bitbucket, y no inventa otras', () => {
+    const gh = { pattern: 'number', url: 'https://github.com/o/r/issues/{id}' };
+    assert.deepEqual(issueRuleFromRemote('https://github.com/o/r.git'), gh);
+    assert.deepEqual(issueRuleFromRemote('git@github.com:o/r.git'), gh);
+    assert.deepEqual(issueRuleFromRemote('ssh://git@github.com/o/r'), gh);
+    assert.deepEqual(issueRuleFromRemote('https://user:tok@github.com/o/r.git'), gh);
+    assert.deepEqual(issueRuleFromRemote('https://gitlab.com/g/sub/r.git'), { pattern: 'number', url: 'https://gitlab.com/g/sub/r/-/issues/{id}' });
+    assert.deepEqual(issueRuleFromRemote('https://codeberg.org/o/r'), { pattern: 'number', url: 'https://codeberg.org/o/r/issues/{id}' });
+    assert.deepEqual(issueRuleFromRemote('git@bitbucket.org:o/r.git'), { pattern: 'number', url: 'https://bitbucket.org/o/r/issues/{id}' });
+    assert.equal(issueRuleFromRemote('https://git.empresa.com/o/r.git'), null);
+    assert.equal(issueRuleFromRemote('/ruta/local/repo'), null);
+    assert.equal(issueRuleFromRemote(''), null);
   });
 });

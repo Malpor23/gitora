@@ -304,7 +304,7 @@ describe('pestañas (E2E)', { skip }, () => {
     await openRepo(s, third);
     assert.equal(await s.tabs.count(), 3);
     await s.tab(third).hover();
-    await s.tab(third).getByRole('button', { name: 'Cerrar pestaña' }).click();
+    await s.tab(third).locator('xpath=following-sibling::span[@aria-hidden="true"]').click();
     await s.tab(third).waitFor({ state: 'detached' });
     assert.equal(await s.tabs.count(), 2);
     assert.ok(await s.tab(repo()).count());
@@ -382,7 +382,7 @@ describe('pestañas (E2E)', { skip }, () => {
   });
 
   it('Ctrl+O desde la bienvenida abre el repo y oculta la bienvenida', async () => {
-    await s.tab(repo()).locator('button').click();
+    await s.tab(repo()).locator('xpath=following-sibling::span[@aria-hidden=\"true\"]').click();
     await s.tab(repo()).waitFor({ state: 'detached' });
     await s.page.getByTitle('Abrir repositorio', { exact: true }).click();
     await s.welcomeOpen.waitFor();
@@ -396,7 +396,7 @@ describe('pestañas (E2E)', { skip }, () => {
     await s.tab(repo()).click();
     const t = makeSmall(fx.base, 'closed-repo');
     await openRepo(s, t);
-    await s.tab(t).locator('button').click();
+    await s.tab(t).locator('xpath=following-sibling::span[@aria-hidden=\"true\"]').click();
     await s.tab(t).waitFor({ state: 'detached' });
     await s.tab(repo()).click();
     s = await s.relaunch();
@@ -411,7 +411,7 @@ describe('pestañas (E2E)', { skip }, () => {
   });
 
   it('cerrar la última pestaña muestra la bienvenida, y reabrir sin pestañas la mantiene', async () => {
-    for (const p of [second, repo()]) await s.tab(p).locator('button').click();
+    for (const p of [second, repo()]) await s.tab(p).locator('xpath=following-sibling::span[@aria-hidden=\"true\"]').click();
     await s.page.waitForFunction(() => document.querySelectorAll('header [role=tab]').length === 0);
     await s.welcomeOpen.waitFor();
     assert.equal(await s.bar().count(), 0);
@@ -495,7 +495,7 @@ describe('pantalla de bienvenida (E2E)', { skip }, () => {
   });
 
   it('un clic en un reciente abre su pestaña (tras cerrarla)', async () => {
-    await s.tab(repo()).locator('button').click();
+    await s.tab(repo()).locator('xpath=following-sibling::span[@aria-hidden=\"true\"]').click();
     await s.tab(repo()).waitFor({ state: 'detached' });
     await s.welcomeOpen.waitFor();
     await recent().first().click();
@@ -524,7 +524,7 @@ describe('pantalla de bienvenida (E2E)', { skip }, () => {
   it('un reciente cuya carpeta ya no existe muestra un error y no abre pestaña (se conserva en la lista)', async () => {
     const gone = makeSmall(fx.base, 'gone-repo');
     await openRepo(s, gone);
-    await s.tab(gone).locator('button').click();
+    await s.tab(gone).locator('xpath=following-sibling::span[@aria-hidden=\"true\"]').click();
     await s.tab(gone).waitFor({ state: 'detached' });
     await goWelcome(s);
     rmSync(gone, { recursive: true, force: true });
@@ -1625,7 +1625,7 @@ describe('cuentas y plataformas, sin red (E2E)', { skip }, () => {
     for (const t of ['Fetch (Ctrl+Shift+F)', 'Pull (Ctrl+Shift+L)', 'Push (Ctrl+Shift+K)']) {
       assert.equal(await s.page.getByTitle(t).isDisabled(), true, `${t} desactivado sin remoto`);
     }
-    await s.tab(norem).locator('button').click();
+    await s.tab(norem).locator('xpath=following-sibling::span[@aria-hidden=\"true\"]').click();
     await s.tab(norem).waitFor({ state: 'detached' });
   });
 

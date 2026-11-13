@@ -167,7 +167,7 @@
       <div class="max-h-[40%] flex-none overflow-auto border-b border-line px-3.5 py-2.5">
         <div class="flex items-center gap-2.5">
           <span
-            class="grid size-7.5 flex-none place-items-center rounded-full bg-[hsl(var(--h)_45%_42%)] text-[11px] font-semibold text-white"
+            class="grid size-7.5 flex-none place-items-center rounded-full bg-[hsl(var(--h)_45%_32%)] text-[11px] font-semibold text-white"
             [style.--h]="authorHue(d.authorEmail)"
           >
             {{ initials(d.author) }}
@@ -186,11 +186,24 @@
             <gt-icon name="copy" [size]="12" />
           </button>
         </div>
-        <h3 class="mt-2.5 mb-1 text-[1.08em] leading-[1.35] font-semibold">{{ d.subject }}</h3>
+        <h3 class="mt-2.5 mb-1 text-[1.08em] leading-[1.35] font-semibold">
+          @for (seg of subjectParts(); track $index) {
+            @if (seg.url) {
+              <a
+                class="cursor-pointer text-accent-fg underline-offset-2 hover:underline"
+                [href]="seg.url"
+                [title]="seg.url"
+                (click)="$event.preventDefault(); openIssue(seg.url)"
+                >{{ seg.text }}</a
+              >
+            } @else {
+              <span>{{ seg.text }}</span>
+            }
+          }
+        </h3>
         @if (d.body) {
-          <pre class="mb-1.5 max-w-[80ch] leading-normal font-sans whitespace-pre-wrap text-fg">
-            {{ d.body }}
-          </pre>
+          <!-- prettier-ignore -->
+          <pre class="mb-1.5 max-w-[80ch] leading-normal font-sans whitespace-pre-wrap text-fg">@for (seg of bodyParts(); track $index) {@if (seg.url) {<a class="cursor-pointer text-accent-fg underline-offset-2 hover:underline" [href]="seg.url" [title]="seg.url" (click)="$event.preventDefault(); openIssue(seg.url)">{{ seg.text }}</a>} @else {<span>{{ seg.text }}</span>}}</pre>
         }
         <div class="muted flex flex-wrap items-center gap-1 text-[.88em]">
           @if (d.parents.length) {

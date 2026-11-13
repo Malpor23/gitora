@@ -1,9 +1,19 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, computed, DestroyRef, effect, inject, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  ElementRef,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 import { I18n, TPipe } from '@core/i18n/i18n';
 import { DiffFile, FileChange } from '@core/models';
+import { formatCoAuthor, parseCoAuthor } from '../../../../shared/coauthors';
 import {
   BridgeService,
   ContextMenuService,
@@ -16,6 +26,15 @@ import {
 import { GitFlows } from '@features/actions';
 import { DiffViewer, HunkActionEvent } from '@features/diff-viewer';
 import { Icon } from '@shared/components';
+import {
+  applyCommitType,
+  COMMIT_TYPES_CONFIG_KEY,
+  currentCommitType,
+  DEFAULT_COMMIT_TYPES,
+  hasBreakingMark,
+  parseCommitTypes,
+  toggleBreaking,
+} from '../../../../shared/conventional';
 import { buildHunkPatch } from '../../../../shared/patch';
 
 type ListKind = 'unstaged' | 'staged' | 'conflicted';
@@ -47,6 +66,30 @@ export class Changes {
   readonly amend = signal(false);
   readonly signoff = signal(false);
   readonly noVerify = signal(false);
+  readonly subjectEl = viewChild<ElementRef<HTMLInputElement>>('subjectEl');
+  /** Tipos de commit propios del repositorio (vacío = los predeterminados). */
+  readonly commitTypes = signal<string[]>([]);
+  readonly knownTypes = computed<readonly string[]>(() =>
+    this.commitTypes().length ? this.commitTypes() : DEFAULT_COMMIT_TYPES,
+  );
+  readonly coAuthors = signal<string[]>([]);
+  readonly coAuthorInput = signal('');
+  readonly coAuthorInvalid = signal(false);
+  /** Autores recientes del repositorio, para sugerirlos como co-autores. */
+  readonly coAuthorOptions = computed(() => {
+    const taken = new Set(this.coAuthors().map((c) => c.toLowerCase()));
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const c of this.store().commits()) {
+      const text = formatCoAuthor({ name: c.author, email: c.authorEmail });
+      const key = text.toLowerCase();
+      if (!parseCoAuthor(text) || seen.has(key) || taken.has(key)) continue;
+      seen.add(key);
+      out.push(text);
+      if (out.length === 20) break;
+    }
+    return out;
+  });
   readonly committing = signal(false);
 
   readonly stagedCount = computed(() => this.status()?.staged.length ?? 0);
@@ -76,6 +119,21 @@ export class Changes {
         )
         .then((d) => this.diff.set(d))
         .catch((e) => this.notify.error(e));
+    });
+
+    // Tipos de commit propios del repositorio activo (git guarda las claves en minúsculas)
+    effect(() => {
+      const path = this.store().path();
+      this.commitTypes.set([]);
+      void this.bridge
+        .git('configList', path, 'local')
+        .then((cfg) => {
+          const entry = Object.entries(cfg).find(
+            ([k]) => k.toLowerCase() === COMMIT_TYPES_CONFIG_KEY.toLowerCase(),
+          );
+          if (this.store().path() === path) this.commitTypes.set(parseCommitTypes(entry?.[1]));
+        })
+        .catch(() => undefined);
     });
 
     // Al activar "Enmendar" se recupera el mensaje del último commit
@@ -171,6 +229,55 @@ export class Changes {
     const s = this.store();
     await s.run(() => this.bridge.git('unstage', s.path(), paths));
     this.multi.set(new Set());
+  }
+
+  /** Id de la opción seleccionada de una lista, para `aria-activedescendant`. */
+  activeId(kind: ListKind, files: readonly FileChange[]): string | null {
+    const i = files.findIndex((f) => this.isSelected(kind, f.path));
+    return i < 0 ? null : `file-${kind}-${i}`;
+  }
+
+  /**
+   * Teclado de las listas de archivos: flechas, Inicio y Fin mueven la selección; Enter o Espacio
+   * hacen lo mismo que el doble clic (preparar, quitar de lo preparado o resolver el conflicto).
+   */
+  onListKey(e: KeyboardEvent, kind: ListKind, files: readonly FileChange[]) {
+    if (!files.length || e.ctrlKey || e.metaKey || e.altKey) return;
+    const cur = files.findIndex((f) => this.isSelected(kind, f.path));
+    let next: number;
+    switch (e.key) {
+      case 'ArrowDown':
+        next = Math.min(files.length - 1, cur + 1);
+        break;
+      case 'ArrowUp':
+        next = cur < 0 ? 0 : Math.max(0, cur - 1);
+        break;
+      case 'Home':
+        next = 0;
+        break;
+      case 'End':
+        next = files.length - 1;
+        break;
+      case 'Enter':
+      case ' ':
+        if (cur >= 0) {
+          e.preventDefault();
+          this.onDblClick(kind, files[cur]);
+        }
+        return;
+      default:
+        return;
+    }
+    e.preventDefault();
+    this.multi.set(new Set());
+    this.store().selectedFile.set({
+      path: files[next].path,
+      staged: kind === 'staged',
+      conflicted: kind === 'conflicted',
+    });
+    queueMicrotask(() =>
+      document.getElementById(`file-${kind}-${next}`)?.scrollIntoView({ block: 'nearest' }),
+    );
   }
 
   onDblClick(kind: ListKind, f: FileChange) {
@@ -318,8 +425,95 @@ export class Changes {
     this.menu.open(e, items);
   }
 
+  /** Menú de tipos de Conventional Commits, desplegado bajo el botón del resumen. */
+  openTypeMenu(anchor: HTMLElement) {
+    const known = this.knownTypes();
+    const current = currentCommitType(this.subject(), known);
+    const defaults = new Set<string>(DEFAULT_COMMIT_TYPES);
+    this.menu.openAt(anchor, [
+      ...known.map((t) => ({
+        label: defaults.has(t) ? `${t} · ${this.i18n.t(`changes.cc.${t}`)}` : t,
+        icon: t === current ? 'check' : undefined,
+        action: () => this.setSubject(applyCommitType(this.subject(), t, known)),
+      })),
+      { separator: true },
+      {
+        label: this.i18n.t('changes.ccBreaking'),
+        icon: hasBreakingMark(this.subject(), known) ? 'check' : undefined,
+        disabled: !current,
+        action: () => this.setSubject(toggleBreaking(this.subject(), known)),
+      },
+      {
+        label: this.i18n.t('changes.ccCustomize'),
+        icon: 'settings',
+        action: () => void this.customizeTypes(),
+      },
+    ]);
+  }
+
+  private setSubject(value: string) {
+    this.subject.set(value);
+    queueMicrotask(() => this.subjectEl()?.nativeElement.focus());
+  }
+
+  /** Cada repositorio guarda su lista de tipos en su configuración local de git. */
+  private async customizeTypes() {
+    const path = this.store().path();
+    const r = await this.dialogs.form({
+      title: this.i18n.t('changes.ccCustomizeTitle'),
+      message: this.i18n.t('changes.ccCustomizeHint'),
+      fields: [
+        {
+          key: 'types',
+          label: this.i18n.t('changes.ccCustomizeLabel'),
+          type: 'text',
+          value: this.commitTypes().join(', '),
+          autofocus: true,
+          mono: true,
+        },
+      ],
+      width: 520,
+    });
+    if (!r) return;
+    const types = parseCommitTypes(String(r['types']));
+    if (types.length)
+      await this.bridge.git('configSet', path, COMMIT_TYPES_CONFIG_KEY, types.join(','), 'local');
+    else await this.bridge.git('configUnset', path, COMMIT_TYPES_CONFIG_KEY, 'local');
+    this.commitTypes.set(types);
+  }
+
+  /** Convierte lo escrito en el campo en un co-autor; devuelve false si el formato no es válido. */
+  addCoAuthor(): boolean {
+    const text = this.coAuthorInput().trim();
+    if (!text) return true;
+    const parsed = parseCoAuthor(text);
+    this.coAuthorInvalid.set(!parsed);
+    if (!parsed) return false;
+    const value = formatCoAuthor(parsed);
+    const email = parsed.email.toLowerCase();
+    const exists = this.coAuthors().some((c) => parseCoAuthor(c)?.email.toLowerCase() === email);
+    if (!exists) this.coAuthors.update((list) => [...list, value]);
+    this.coAuthorInput.set('');
+    return true;
+  }
+
+  removeCoAuthor(value: string) {
+    this.coAuthors.update((list) => list.filter((c) => c !== value));
+  }
+
+  onCoAuthorKey(e: KeyboardEvent) {
+    // Enter añade el co-autor; sin esto el formulario haría el commit. Ctrl+Enter sí lo hace.
+    if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      this.addCoAuthor();
+    }
+  }
+
   async commit(push = false) {
     if (!this.canCommit()) return;
+    // Lo escrito en el campo de co-autores cuenta aunque no se haya pulsado Enter.
+    if (!this.addCoAuthor()) return;
     const s = this.store();
     const message = this.body().trim()
       ? `${this.subject().trim()}\n\n${this.body().trim()}`
@@ -331,6 +525,7 @@ export class Changes {
         amend: this.amend(),
         signoff: this.signoff(),
         noVerify: this.noVerify(),
+        coAuthors: this.coAuthors(),
       }),
     );
     this.committing.set(false);
@@ -339,6 +534,7 @@ export class Changes {
       this.subject.set('');
       this.body.set('');
       this.amend.set(false);
+      this.coAuthors.set([]);
       if (push) await this.flows.quickPush(s);
     }
   }

@@ -77,8 +77,8 @@ describe('panel Cambios, visor de diff, conflictos y consola (E2E)', { skip: has
   /* ───────── localizadores ───────── */
   const listOf = (k: Kind): Locator =>
     app.page.locator(`xpath=//header[contains(normalize-space(.), '${TITLE[k]}')]/following-sibling::ul[@role='listbox']`);
-  const rowOf = (k: Kind, name: string): Locator => listOf(k).locator('li[role=option]').filter({ hasText: name });
-  const count = (k: Kind) => listOf(k).locator('li[role=option]').count();
+  const rowOf = (k: Kind, name: string): Locator => listOf(k).locator('[role=option]').filter({ hasText: name });
+  const count = (k: Kind) => listOf(k).locator('[role=option]').count();
   const viewer = () => app.page.locator('gt-diff-viewer');
   const viewerPath = () => viewer().locator('span.mono[title]').first();
   const hunks = () => viewer().locator('div.sticky');
@@ -230,6 +230,11 @@ describe('panel Cambios, visor de diff, conflictos y consola (E2E)', { skip: has
     // El formulario de commit vive en el componente: se deja limpio entre casos
     await subjectInput().fill('');
     await bodyInput().fill('');
+    // El campo y los chips de co-autores también viven en el componente: se dejan vacíos entre casos
+    const coInputEl = app.page.locator('input[name=coauthor]');
+    if (await coInputEl.count()) await coInputEl.fill('');
+    const removeChip = app.page.getByRole('button', { name: /Quitar al co-autor/ });
+    while ((await removeChip.count()) > 0) await removeChip.first().click();
     for (const id of ['amend', 'signoff', 'noverify']) await app.page.locator(`#${id}`).uncheck();
   });
 
@@ -324,7 +329,7 @@ describe('panel Cambios, visor de diff, conflictos y consola (E2E)', { skip: has
       writeFileSync(file('s2.txt'), '2\n');
       await sync();
       await rowOf('unstaged', 's1.txt').hover();
-      await rowOf('unstaged', 's1.txt').locator('button[title="Preparar"]').click();
+      await rowOf('unstaged', 's1.txt').locator('span[title="Preparar"]').click();
       await until(() => staged().includes('s1.txt'), 's1 preparado');
       assert.ok(!staged().includes('s2.txt'));
       await until(async () => (await rowOf('staged', 's1.txt').count()) === 1, 'fila en preparados');
@@ -338,11 +343,11 @@ describe('panel Cambios, visor de diff, conflictos y consola (E2E)', { skip: has
       g('add', '-A');
       await sync();
       await rowOf('staged', 's1.txt').hover();
-      await rowOf('staged', 's1.txt').locator('button[title="Quitar del índice"]').click();
+      await rowOf('staged', 's1.txt').locator('span[title="Quitar del índice"]').click();
       await until(() => !staged().includes('s1.txt'), 's1 fuera del índice');
       assert.ok(staged().includes('s2.txt'));
       assert.match(porcelain(), /\?\? s1\.txt/);
-      assert.equal(await rowOf('unstaged', 's1.txt').count(), 1);
+      await until(async () => (await rowOf('unstaged', 's1.txt').count()) === 1, 'fila en sin preparar');
     });
 
     it('Preparar todo prepara modificados, borrados y sin seguimiento', async () => {
@@ -998,6 +1003,130 @@ describe('panel Cambios, visor de diff, conflictos y consola (E2E)', { skip: has
 
   /* ═════════════════════ caja de commit ═════════════════════ */
   describe('caja de commit', () => {
+    const coInput = () => app.page.locator('input[name=coauthor]');
+    const coChips = () => app.page.locator('form span:has(button[aria-label^="Quitar al co-autor"])');
+    const ANA = 'Ana Pérez <ana@example.com>';
+    const typeBtn = () => app.page.locator('form button[aria-haspopup=menu]');
+
+    it('tipos convencionales: el menú escribe el tipo, lo reemplaza y marca el cambio incompatible', async () => {
+      writeFileSync(file('cc1.txt'), uniq());
+      g('add', 'cc1.txt');
+      await sync();
+      await typeBtn().click();
+      const labels = (await menu().locator('[role=menuitem]').allInnerTexts()).map((t) => t.split('\n')[0].trim());
+      assert.ok(labels.some((l) => l.startsWith('feat')) && labels.some((l) => l.startsWith('revert')), `tipos: ${labels}`);
+      await menuItem(/^feat/).first().click();
+      await until(async () => (await subjectInput().inputValue()) === 'feat: ', 'prefijo feat');
+      assert.ok(await subjectInput().evaluate((el) => el === document.activeElement), 'el foco vuelve al resumen');
+
+      await subjectInput().fill('feat(ui): botón nuevo');
+      await typeBtn().click();
+      await menuItem(/^fix/).first().click();
+      await until(async () => (await subjectInput().inputValue()) === 'fix(ui): botón nuevo', 'tipo reemplazado');
+
+      await typeBtn().click();
+      await menuItem(/Cambio incompatible/).first().click();
+      await until(async () => (await subjectInput().inputValue()) === 'fix(ui)!: botón nuevo', 'marca !');
+      const before = head();
+      await commitBtn().click();
+      await until(() => head() !== before, 'commit creado');
+      assert.equal(g('log', '-1', '--format=%s'), 'fix(ui)!: botón nuevo');
+    });
+
+    it('tipos convencionales: un resumen sin tipo conocido no se confunde y el cambio incompatible queda deshabilitado', async () => {
+      await subjectInput().fill('Nota: revisar');
+      await typeBtn().click();
+      assert.equal(await menuItem(/Cambio incompatible/).first().getAttribute('aria-disabled'), 'true');
+      await menuItem(/^chore/).first().click();
+      await until(async () => (await subjectInput().inputValue()) === 'chore: Nota: revisar', 'prefijo antepuesto');
+    });
+
+    it('tipos convencionales: Personalizar guarda los tipos en la config local y vaciarlos restaura los predeterminados', async () => {
+      await typeBtn().click();
+      await menuItem(/Personalizar tipos/).first().click();
+      await app.dialog.last().waitFor();
+      await app.dialog.last().locator('input[type=text]').first().fill('feat, deploy, Deploy, mal!');
+      await app.confirm();
+      await until(() => sh('config', '--local', '--get', 'gitora.commitTypes') === 'feat,deploy', 'config local');
+      await app.dialog.last().waitFor({ state: 'detached' });
+      await typeBtn().click();
+      await menu().waitFor();
+      const labels = (await menu().locator('[role=menuitem]').allInnerTexts()).map((t) => t.split('\n')[0].trim());
+      assert.ok(labels.some((l) => l === 'deploy'), `propios: ${labels}`);
+      assert.ok(!labels.some((l) => l.startsWith('revert')), 'ya no están los predeterminados');
+      await app.page.keyboard.press('Escape');
+
+      await typeBtn().click();
+      await menuItem(/Personalizar tipos/).first().click();
+      await app.dialog.last().waitFor();
+      await app.dialog.last().locator('input[type=text]').first().fill('');
+      await app.confirm();
+      await until(() => sh('config', '--local', '--get', 'gitora.commitTypes') === '', 'config local eliminada');
+      await app.dialog.last().waitFor({ state: 'detached' });
+      await typeBtn().click();
+      await menu().waitFor();
+      assert.ok(((await menu().locator('[role=menuitem]').allInnerTexts()).join('|')).includes('revert'));
+      await app.page.keyboard.press('Escape');
+    });
+
+
+    it('co-autores: Enter añade un chip sin hacer commit y el commit lleva el trailer', async () => {
+      writeFileSync(file('co1.txt'), uniq());
+      g('add', 'co1.txt');
+      await sync();
+      await subjectInput().fill('Trabajo en pareja');
+      const before = head();
+      await coInput().fill(ANA);
+      await coInput().press('Enter');
+      await until(async () => (await coChips().count()) === 1, 'chip del co-autor');
+      assert.equal(head(), before, 'Enter en el campo no debe hacer commit');
+      assert.equal(await coInput().inputValue(), '');
+      await commitBtn().click();
+      await until(() => head() !== before, 'commit creado');
+      assert.equal(g('log', '-1', '--format=%(trailers:key=Co-authored-by,valueonly)').trim(), ANA);
+      assert.match(g('log', '-1', '--format=%B'), /^Trabajo en pareja\n\nCo-authored-by: Ana Pérez <ana@example\.com>/);
+      await until(async () => (await coChips().count()) === 0, 'los co-autores se limpian tras el commit');
+    });
+
+    it('co-autores: lo escrito sin pulsar Enter también se incluye, y quitar el chip lo excluye', async () => {
+      writeFileSync(file('co2.txt'), uniq());
+      g('add', 'co2.txt');
+      await sync();
+      await subjectInput().fill('Sin Enter');
+      await coInput().fill('Luis Gómez <luis@example.com>');
+      await commitBtn().click();
+      await until(() => g('log', '-1', '--format=%s') === 'Sin Enter', 'commit sin Enter');
+      assert.equal(g('log', '-1', '--format=%(trailers:key=Co-authored-by,valueonly)').trim(), 'Luis Gómez <luis@example.com>');
+
+      writeFileSync(file('co3.txt'), uniq());
+      g('add', 'co3.txt');
+      await sync();
+      await subjectInput().fill('Quitado');
+      await coInput().fill(ANA);
+      await coInput().press('Enter');
+      await until(async () => (await coChips().count()) === 1, 'chip');
+      await app.page.getByRole('button', { name: /Quitar al co-autor/ }).click();
+      await until(async () => (await coChips().count()) === 0, 'chip quitado');
+      await commitBtn().click();
+      await until(() => g('log', '-1', '--format=%s') === 'Quitado', 'commit sin co-autor');
+      assert.equal(g('log', '-1', '--format=%(trailers:key=Co-authored-by,valueonly)').trim(), '');
+    });
+
+    it('co-autores: un formato inválido avisa y bloquea el commit', async () => {
+      writeFileSync(file('co4.txt'), uniq());
+      g('add', 'co4.txt');
+      await sync();
+      await subjectInput().fill('Inválido');
+      const before = head();
+      await coInput().fill('sin correo');
+      await commitBtn().click();
+      await app.page.locator('#coauthor-error').waitFor();
+      assert.equal(await coInput().getAttribute('aria-invalid'), 'true');
+      assert.equal(head(), before, 'no se crea el commit');
+      await coInput().fill('Ana <ana@example.com>');
+      await until(async () => (await app.page.locator('#coauthor-error').count()) === 0, 'el aviso se quita al corregir');
+    });
+
     it('el botón está deshabilitado sin nada preparado o sin resumen, y avisa cuando falta preparar', async () => {
       writeFileSync(file('c1.txt'), uniq());
       await sync();
@@ -1248,7 +1377,7 @@ describe('panel Cambios, visor de diff, conflictos y consola (E2E)', { skip: has
       assert.match(await app.dialog.innerText(), /Resolver conflicto: d\.txt/);
       await app.closeAll();
       await rowOf('conflicted', 'd.txt').hover();
-      await rowOf('conflicted', 'd.txt').locator('button').click();
+      await rowOf('conflicted', 'd.txt').locator('span[aria-hidden=true]').click();
       await app.dialog.waitFor();
       assert.match(await app.dialog.innerText(), /Resolver conflicto: d\.txt/);
     });
@@ -1652,7 +1781,7 @@ describe('panel Cambios, visor de diff, conflictos y consola (E2E)', { skip: has
       await setConsole(true);
       await consolePanel().getByRole('button', { name: 'Limpiar' }).click();
       await rowOf('unstaged', 'log1.txt').hover();
-      await rowOf('unstaged', 'log1.txt').locator('button[title="Preparar"]').click();
+      await rowOf('unstaged', 'log1.txt').locator('span[title="Preparar"]').click();
       await until(async () => (await consolePanel().innerText()).includes('git add -A -- log1.txt'), 'comando add en la consola');
       const entry = consolePanel().locator('div.border-dashed').filter({ hasText: 'git add -A -- log1.txt' }).first();
       assert.match(await entry.innerText(), /ms · 0/);

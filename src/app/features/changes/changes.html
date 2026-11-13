@@ -31,11 +31,19 @@
             </button>
           }
         </header>
-        <ul class="list-none m-0 px-0 pt-0 pb-1.5 overflow-auto flex-1" role="listbox">
-          @for (f of st.unstaged; track f.path) {
+        <ul
+          class="list-none m-0 px-0 pt-0 pb-1.5 overflow-auto flex-1"
+          role="listbox"
+          tabindex="0"
+          [attr.aria-label]="'changes.unstaged' | t"
+          [attr.aria-activedescendant]="activeId('unstaged', st.unstaged)"
+          (keydown)="onListKey($event, 'unstaged', st.unstaged)"
+        >
+          @for (f of st.unstaged; track f.path; let i = $index) {
             @let parts = split(f.path);
             <li
               role="option"
+              [id]="'file-unstaged-' + i"
               class="group flex items-center gap-2 h-6.5 pl-3 pr-1.5 cursor-default whitespace-nowrap"
               [class]="isSelected('unstaged', f.path) ? 'bg-selected' : 'hover:bg-hover'"
               [attr.aria-selected]="isSelected('unstaged', f.path)"
@@ -54,13 +62,13 @@
               <span class="text-faint overflow-hidden text-ellipsis min-w-0 flex-1 text-[.92em]">
                 {{ parts.dir }}
               </span>
-              <button
+              <span aria-hidden="true"
                 class="opacity-0 border-0 bg-transparent text-muted cursor-pointer p-0.75 rounded-sm inline-flex group-hover:opacity-100 hover:bg-line hover:text-fg focus-visible:opacity-100"
                 (click)="$event.stopPropagation(); stage([f.path])"
                 [title]="'changes.stage' | t"
               >
                 <gt-icon name="plus" [size]="14" />
-              </button>
+              </span>
             </li>
           }
         </ul>
@@ -78,11 +86,19 @@
             </button>
           }
         </header>
-        <ul class="list-none m-0 px-0 pt-0 pb-1.5 overflow-auto flex-1" role="listbox">
-          @for (f of st.staged; track f.path) {
+        <ul
+          class="list-none m-0 px-0 pt-0 pb-1.5 overflow-auto flex-1"
+          role="listbox"
+          tabindex="0"
+          [attr.aria-label]="'changes.staged' | t"
+          [attr.aria-activedescendant]="activeId('staged', st.staged)"
+          (keydown)="onListKey($event, 'staged', st.staged)"
+        >
+          @for (f of st.staged; track f.path; let i = $index) {
             @let parts = split(f.path);
             <li
               role="option"
+              [id]="'file-staged-' + i"
               class="group flex items-center gap-2 h-6.5 pl-3 pr-1.5 cursor-default whitespace-nowrap"
               [class]="isSelected('staged', f.path) ? 'bg-selected' : 'hover:bg-hover'"
               [attr.aria-selected]="isSelected('staged', f.path)"
@@ -101,13 +117,13 @@
               <span class="text-faint overflow-hidden text-ellipsis min-w-0 flex-1 text-[.92em]">
                 {{ f.origPath ? f.origPath + ' → ' : '' }}{{ parts.dir }}
               </span>
-              <button
+              <span aria-hidden="true"
                 class="opacity-0 border-0 bg-transparent text-muted cursor-pointer p-0.75 rounded-sm inline-flex group-hover:opacity-100 hover:bg-line hover:text-fg focus-visible:opacity-100"
                 (click)="$event.stopPropagation(); unstage([f.path])"
                 [title]="'changes.unstage' | t"
               >
                 <gt-icon name="minus" [size]="14" />
-              </button>
+              </span>
             </li>
           }
         </ul>
@@ -118,21 +134,37 @@
         (submit)="$event.preventDefault(); commit()"
         (keydown)="onCommitKey($event)"
       >
-        <input
-          class="font-medium pr-10"
-          type="text"
-          [placeholder]="'changes.subject' | t"
-          name="subject"
-          [ngModel]="subject()"
-          (ngModelChange)="subject.set($event)"
-          spellcheck="true"
-        />
-        <span
-          class="absolute right-5.5 top-4.5 text-[.78em] tabular-nums"
-          [class]="subject().length > 72 ? 'text-warning' : 'text-faint'"
-        >
-          {{ subject().length }}
-        </span>
+        <div class="flex gap-1.5">
+          <button
+            #typeBtn
+            type="button"
+            class="btn small flex-none"
+            [title]="'changes.commitType' | t"
+            [attr.aria-label]="'changes.commitType' | t"
+            aria-haspopup="menu"
+            (click)="openTypeMenu(typeBtn)"
+          >
+            <gt-icon name="tag" [size]="15" />
+          </button>
+          <div class="relative min-w-0 flex-1">
+            <input
+              #subjectEl
+              class="w-full font-medium pr-10"
+              type="text"
+              [placeholder]="'changes.subject' | t"
+              name="subject"
+              [ngModel]="subject()"
+              (ngModelChange)="subject.set($event)"
+              spellcheck="true"
+            />
+            <span
+              class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[.78em] tabular-nums"
+              [class]="subject().length > 72 ? 'text-warning' : 'text-faint'"
+            >
+              {{ subject().length }}
+            </span>
+          </div>
+        </div>
         <textarea
           rows="3"
           class="resize-y min-h-14"
@@ -142,6 +174,46 @@
           (ngModelChange)="body.set($event)"
           spellcheck="true"
         ></textarea>
+        <div class="flex flex-wrap items-center gap-1.5 text-[.9em]">
+          <label for="coauthor" class="text-muted">{{ 'changes.coAuthors' | t }}</label>
+          @for (c of coAuthors(); track c) {
+            <span class="inline-flex items-center gap-1 rounded-md border border-line bg-hover py-px pr-0.5 pl-2">
+              {{ c }}
+              <button
+                type="button"
+                class="inline-flex cursor-pointer rounded-sm border-0 bg-transparent p-0.5 text-muted hover:bg-line hover:text-fg"
+                [attr.aria-label]="'changes.coAuthorRemove' | t: { name: c }"
+                (click)="removeCoAuthor(c)"
+              >
+                <gt-icon name="x" [size]="12" />
+              </button>
+            </span>
+          }
+          <input
+            id="coauthor"
+            class="min-w-40 flex-1"
+            type="text"
+            name="coauthor"
+            list="coauthor-options"
+            autocomplete="off"
+            [placeholder]="'changes.coAuthorPlaceholder' | t"
+            [ngModel]="coAuthorInput()"
+            (ngModelChange)="coAuthorInput.set($event); coAuthorInvalid.set(false)"
+            [attr.aria-invalid]="coAuthorInvalid()"
+            [attr.aria-describedby]="coAuthorInvalid() ? 'coauthor-error' : null"
+            (keydown)="onCoAuthorKey($event)"
+          />
+          <datalist id="coauthor-options">
+            @for (o of coAuthorOptions(); track o) {
+              <option [value]="o"></option>
+            }
+          </datalist>
+        </div>
+        @if (coAuthorInvalid()) {
+          <p id="coauthor-error" role="alert" class="m-0 text-[.85em] text-danger">
+            {{ 'changes.coAuthorInvalid' | t }}
+          </p>
+        }
         <div class="flex flex-wrap gap-x-3.5 gap-y-1 text-[.9em] text-muted">
           <label for="amend" class="inline-flex gap-1.5 items-center cursor-pointer">
             {{ 'changes.amend' | t }}
@@ -234,10 +306,19 @@
       <span>{{ title | t }}</span>
       <span class="font-medium text-faint tabular-nums">{{ files.length }}</span>
     </header>
-    <ul class="list-none m-0 px-0 pt-0 pb-1.5 overflow-auto flex-1" role="listbox">
-      @for (f of files; track f.path) {
+    <ul
+      class="list-none m-0 px-0 pt-0 pb-1.5 overflow-auto flex-1"
+      role="listbox"
+      tabindex="0"
+      [attr.aria-label]="title | t"
+      [attr.aria-activedescendant]="activeId(kind, files)"
+      (keydown)="onListKey($event, kind, files)"
+    >
+      @for (f of files; track f.path; let i = $index) {
         <li
           role="option"
+          [id]="'file-' + kind + '-' + i"
+          [attr.aria-selected]="isSelected(kind, f.path)"
           class="group flex items-center gap-2 h-6.5 pl-3 pr-1.5 cursor-default whitespace-nowrap"
           [class]="isSelected(kind, f.path) ? 'bg-selected' : 'hover:bg-hover'"
           (click)="select($event, kind, f)"
@@ -251,12 +332,13 @@
           <span class="text-faint overflow-hidden text-ellipsis min-w-0 flex-1 text-[.92em]">
             {{ split(f.path).dir }}
           </span>
-          <button
+          <span aria-hidden="true"
+            [title]="'changes.resolveEditor' | t"
             class="opacity-0 border-0 bg-transparent text-muted cursor-pointer p-0.75 rounded-sm inline-flex group-hover:opacity-100 hover:bg-line hover:text-fg focus-visible:opacity-100"
             (click)="$event.stopPropagation(); flows.resolveConflict(s, f.path)"
           >
             <gt-icon name="edit" [size]="14" />
-          </button>
+          </span>
         </li>
       }
     </ul>

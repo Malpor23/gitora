@@ -211,6 +211,8 @@ export interface CommitOptions {
   gpgSign?: boolean;
   allowEmpty?: boolean;
   author?: string; // "Nombre <correo>"
+  /** Co-autores como "Nombre <correo>"; se añaden al mensaje como trailers `Co-authored-by`. */
+  coAuthors?: string[];
 }
 
 export interface CloneOptions {

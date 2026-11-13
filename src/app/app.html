@@ -21,40 +21,48 @@
       >
         <gt-icon name="git-merge" [size]="16" />
       </div>
-      <div
-        class="flex min-w-0 items-end gap-0.5 overflow-x-auto pt-1.5 scrollbar-none"
-        role="tablist"
-      >
-        @for (tab of ws.tabs(); track tab.path()) {
-          @let active = tab === store() && !ws.showWelcome();
-          <div
-            role="tab"
-            class="group/tab relative flex h-8.5 max-w-55 cursor-default items-center gap-1.5 rounded-t-lg pr-1.5 pl-3.5 [-webkit-app-region:no-drag] [app-region:no-drag]"
-            [class]="
-              active
-                ? '-mb-px border border-line border-b-bg bg-bg text-fg shadow-[0_1px_0_var(--bg)]'
-                : 'text-muted hover:bg-hover hover:text-fg'
-            "
-            [attr.aria-selected]="tab === store()"
-            (click)="ws.activate(tab.path())"
-            (auxclick)="closeOnMiddleClick($event, tab.path())"
-            (contextmenu)="tabMenu($event, tab.path())"
-            [title]="tab.path()"
-          >
-            <span class="truncate font-medium">{{ tab.name() }}</span>
-            @if (tab.changeCount()) {
-              <span class="size-1.5 flex-none rounded-full bg-st-modified"></span>
-            }
-            <button
-              class="inline-flex cursor-pointer rounded-sm border-0 bg-transparent p-0.75 text-muted hover:bg-line hover:text-fg [-webkit-app-region:no-drag] [app-region:no-drag]"
-              [class]="active ? 'opacity-100' : 'opacity-0 group-hover/tab:opacity-100'"
-              (click)="$event.stopPropagation(); ws.close(tab.path())"
-              [attr.aria-label]="'titlebar.closeTab' | t"
+      <div class="flex min-w-0 items-end gap-0.5 overflow-x-auto pt-1.5 scrollbar-none">
+        <div role="tablist" class="flex items-end gap-0.5">
+          @for (tab of ws.tabs(); track tab.path()) {
+            @let active = tab === store() && !ws.showWelcome();
+            <div
+              role="presentation"
+              class="group/tab relative flex h-8.5 max-w-55 cursor-default items-center gap-1.5 rounded-t-lg pr-1.5 pl-3.5 [-webkit-app-region:no-drag] [app-region:no-drag]"
+              [class]="
+                active
+                  ? '-mb-px border border-line border-b-bg bg-bg text-fg shadow-[0_1px_0_var(--bg)]'
+                  : 'text-muted hover:bg-hover hover:text-fg'
+              "
+              (auxclick)="closeOnMiddleClick($event, tab.path())"
+              (contextmenu)="tabMenu($event, tab.path())"
             >
-              <gt-icon name="x" [size]="12" />
-            </button>
-          </div>
-        }
+              <button
+                role="tab"
+                type="button"
+                class="flex h-full min-w-0 cursor-default items-center gap-1.5 border-0 bg-transparent p-0 text-inherit [font:inherit]"
+                [attr.aria-selected]="tab === store()"
+                (click)="ws.activate(tab.path())"
+                (keydown.delete)="ws.close(tab.path())"
+                [title]="tab.path()"
+              >
+                <span class="truncate font-medium">{{ tab.name() }}</span>
+                @if (tab.changeCount()) {
+                  <span class="size-1.5 flex-none rounded-full bg-st-modified"></span>
+                }
+              </button>
+              <!-- Decorativo: con teclado la pestaña se cierra con Supr o desde su menú contextual -->
+              <span
+                aria-hidden="true"
+                class="inline-flex cursor-pointer rounded-sm border-0 bg-transparent p-0.75 text-muted hover:bg-line hover:text-fg [-webkit-app-region:no-drag] [app-region:no-drag]"
+                [class]="active ? 'opacity-100' : 'opacity-0 group-hover/tab:opacity-100'"
+                [title]="'titlebar.closeTab' | t"
+                (click)="$event.stopPropagation(); ws.close(tab.path())"
+              >
+                <gt-icon name="x" [size]="12" />
+              </span>
+            </div>
+          }
+        </div>
         <button
           class="mx-1.5 inline-flex cursor-pointer self-center rounded-md border-0 bg-transparent p-1.25 text-muted hover:bg-hover hover:text-fg [-webkit-app-region:no-drag] [app-region:no-drag]"
           (click)="ws.showWelcome.set(true)"
@@ -79,7 +87,7 @@
           ' h-11 min-w-9 flex-col justify-center gap-0.5 bg-transparent px-2 text-[.8em] text-fg';
         @let tbChev =
           tbBase +
-          ' -ml-0.5 h-11 w-4 justify-center bg-transparent px-0 text-fg [&_gt-icon]:text-icon';
+          ' -ml-0.5 h-11 w-6 justify-center bg-transparent px-0 text-fg [&_gt-icon]:text-icon';
         @let tbWide =
           tbBase +
           ' h-[30px] min-w-[220px] justify-start gap-2 border border-line bg-input px-2.5 text-[.9em] text-muted';

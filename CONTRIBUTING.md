@@ -14,6 +14,7 @@ Gracias por querer aportar. Todo cambio entra por pull request en [https://githu
 
 - Código, identificadores y textos de interfaz base en inglés; la documentación en español.
 - Toda cadena de interfaz va en `src/app/core/i18n/locales/` (en y es).
+- Si agregas o actualizas una dependencia que viaja en la app (`dependencies` de `package.json`), revisa su licencia y actualiza [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Con `npm ls --omit=dev --all` ves el árbol que se distribuye.
 - La guía de estructura y de cómo agregar comandos está en [docs/codigo.md](docs/codigo.md); el entorno de desarrollo en [docs/desarrollo.md](docs/desarrollo.md).
 
 ## Reportar errores y proponer funciones

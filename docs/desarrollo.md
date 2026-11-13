@@ -41,6 +41,10 @@ Las imágenes de `docs/img/` (español) y `docs/en/img/` (inglés) se tomaron en
 2. Crea un repositorio con ese contenido en una carpeta temporal.
 3. Abre `http://localhost:4300` a 1360x820, abre el repositorio con `Ctrl+O` y captura cada pantalla (cambios, diff, historial, paleta, ajustes, consola, el desplegable de Rama). Cambia el idioma en los ajustes del modo navegador (`es` o `en`) para cada juego de imágenes.
 
+### Accesibilidad
+
+`e2e/a11y.test.ts` pasa `axe-core` (reglas WCAG 2.0, 2.1 y 2.2 de nivel A y AA) por el historial, Cambios, la paleta, Ajustes con todas sus pestañas y el menú contextual, y comprueba el teclado de las listas y de las pestañas. `axe-core` (MPL-2.0) es solo una dependencia de desarrollo y no viaja en la app. Ejecútala con `xvfb-run -a node --test dist/e2e/a11y.test.js` tras `npm run build` y `npx tsc -p tsconfig.e2e.json`. Al añadir pantallas o diálogos nuevos, súmalos a esa prueba.
+
 ## Compilar instaladores
 
 ```bash

@@ -35,11 +35,32 @@ Images (PNG, JPEG, GIF, WebP, AVIF, BMP and ICO) do not show the "binary file" n
 
 It works in Changes (unstaged against the index, staged against `HEAD`) and in the history (the commit against its first parent). If the file is new or deleted, only the existing version is shown. Images over 10 MB are not shown; SVG files appear as text.
 
+### Conventional commit types
+
+The tag button, to the left of the summary, opens a menu with the [Conventional Commits](https://www.conventionalcommits.org/) types (`feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore` and `revert`). Choosing one writes `type: ` at the start of the summary; if the summary already started with a known type it is replaced, keeping the scope and the `!` mark (`feat(ui)!: x` becomes `fix(ui)!: x`). **Breaking change (!)** adds or removes that mark. A summary that starts with another word and a colon (`Note: ...`) is not mistaken for a type.
+
+**Customize types…** saves a list of your own for that repository, separated by commas, in its local git config (`gitora.commitTypes`); leaving it empty restores the default types.
+
+### Co-authors
+
+Below the commit description there is a **Co-authors** field. Type `Name <email>` and press Enter to add it as a chip (the **×** removes it); recent authors of the repository appear as suggestions while you type. When you commit, one `Co-authored-by: Name <email>` line per co-author is added to the message, next to the `Signed-off-by` if you ticked it, and GitHub and GitLab recognise them. Whatever is typed in the field counts even without pressing Enter; if the format is not valid you are warned and no commit is made. When amending, co-authors the message already had are not repeated. The chips are cleared after each commit.
+
 ## History
 
 ![History](img/history.png)
 
 Commit graph with a colored lane per branch, search by message, hash or author (type `author:name`), branch filter, first parent only and progressive loading. Selecting a commit shows its details and files. From a commit's context menu: cherry-pick, revert, reset, create branch or tag, interactive rebase.
+
+### Issue links
+
+In a commit's details, issue references in the summary and description are links that open in the browser. For GitHub, GitLab, Codeberg and Bitbucket repositories the rule is derived from the `origin` remote (`#123` opens `.../issues/123`). For another server, or for Jira keys, it is set in the repository's local config (**More → git config**, local scope):
+
+| Key | Value |
+|-----|-------|
+| `gitora.issueUrl` | URL containing `{id}`, for example `https://jira.company.com/browse/{id}` (`http` or `https` only) |
+| `gitora.issuePattern` | `number` for `#123` (default) or `key` for `ABC-123` |
+
+Only those two reference forms exist, on purpose: custom regular expressions are not accepted. A lone `#`, a colour such as `#fff` or a number glued to a word is not linked.
 
 ## Toolbar
 
@@ -125,6 +146,9 @@ Secrets are encrypted with the system keyring and never reach the interface.
 | `Ctrl+Shift+P` | Command palette |
 | `Ctrl+O` | Open repository |
 | `F5` | Refresh |
+| `↑` `↓` `Home` `End` | In the Changes file lists: move the selection |
+| `Enter` or `Space` | In the file lists: stage, unstage or resolve the conflict |
+| `Delete` | With focus on a repository tab: close it |
 | `Ctrl+1` / `Ctrl+2` | Local changes / History |
 | `Ctrl+Shift+F` / `L` / `K` | Fetch / Pull / Push |
 | `Ctrl+Shift+B` | Create branch |
@@ -144,7 +168,7 @@ Secrets are encrypted with the system keyring and never reach the interface.
 |------|----------|
 | Repositories | Open, clone, create, tabs, recent, terminal and file explorer |
 | Changes | Stage per file, hunk and line; discard; ignore; `clean` with preview; image diff (side by side, slider and blend) |
-| Commit | Summary and description, amend, sign-off, skip hooks, commit and push |
+| Commit | Summary and description, conventional commit types, co-authors, amend, sign-off, skip hooks, commit and push |
 | History | Graph, search, file history, blame |
 | Branches | Create, checkout, rename, delete (local and remote), upstream |
 | Integration | Merge (ff, no-ff, ff-only, squash), rebase, visual interactive rebase, cherry-pick, revert, reset |

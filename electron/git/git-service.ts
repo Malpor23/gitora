@@ -1,6 +1,7 @@
 import { existsSync, promises as fs } from 'node:fs';
 import * as path from 'node:path';
 import { GitOps } from '../../shared/api';
+import { appendCoAuthors } from '../../shared/coauthors';
 import { imageMime, MAX_IMAGE_BYTES } from '../../shared/image';
 import type {
   BenchmarkResult, BlameLine, Branch, CloneOptions, Commit, CommitDetails, CommitOptions, ConflictVersions,
@@ -278,7 +279,9 @@ export class GitService implements GitOps {
     if (o.gpgSign) args.push('-S');
     if (o.allowEmpty) args.push('--allow-empty');
     if (o.author) args.push('--author', o.author);
-    await this.git(repo, args, { input: o.message, env: this.noEditorEnv });
+    // Valida y añade los trailers antes de tocar git: un co-autor inválido no crea ningún commit.
+    const message = appendCoAuthors(o.message, o.coAuthors ?? []);
+    await this.git(repo, args, { input: message, env: this.noEditorEnv });
     return (await this.git(repo, ['rev-parse', 'HEAD'], { silent: true })).trim();
   }
 

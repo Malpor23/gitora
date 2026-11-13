@@ -41,6 +41,10 @@ The images in `docs/img/` (Spanish) and `docs/en/img/` (English) were taken in b
 2. Create a repository with that content in a temporary folder.
 3. Set the language in the browser-mode settings (`es` or `en`), open `http://localhost:4300` at 1360x820, open the repository with `Ctrl+O` and capture each screen (changes, diff, history, palette, settings, console, the Branch dropdown).
 
+### Accessibility
+
+`e2e/a11y.test.ts` runs `axe-core` (WCAG 2.0, 2.1 and 2.2 level A and AA rules) over the history, Changes, the palette, Settings with all its tabs and the context menu, and checks the keyboard on the lists and tabs. `axe-core` (MPL-2.0) is only a development dependency and does not ship in the app. Run it with `xvfb-run -a node --test dist/e2e/a11y.test.js` after `npm run build` and `npx tsc -p tsconfig.e2e.json`. When you add new screens or dialogs, add them to that test.
+
 ## Building installers
 
 ```bash

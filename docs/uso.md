@@ -35,11 +35,32 @@ Las imágenes (PNG, JPEG, GIF, WebP, AVIF, BMP e ICO) no muestran el aviso de «
 
 Funciona en Cambios (sin preparar contra el índice, preparados contra `HEAD`) y en el historial (el commit contra su primer padre). Si el archivo es nuevo o fue eliminado solo se muestra la versión que existe. No se muestran imágenes de más de 10 MB; los SVG se ven como texto.
 
+### Tipos de commit convencionales
+
+El botón de la etiqueta, a la izquierda del resumen, abre un menú con los tipos de [Conventional Commits](https://www.conventionalcommits.org/es/) (`feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore` y `revert`). Al elegir uno se escribe `tipo: ` al inicio del resumen; si el resumen ya empezaba con un tipo conocido se reemplaza y se conservan el alcance y la marca `!` (`feat(ui)!: x` pasa a `fix(ui)!: x`). **Cambio incompatible (!)** añade o quita esa marca. Un resumen que empieza con otra palabra y dos puntos (`Nota: ...`) no se toma por un tipo.
+
+**Personalizar tipos…** guarda una lista propia para ese repositorio, separada por comas, en su configuración local de git (`gitora.commitTypes`); dejarla vacía restaura los tipos predeterminados.
+
+### Co-autores
+
+Bajo la descripción del commit hay un campo **Co-autores**. Escribe `Nombre <correo>` y pulsa Enter para añadirlo como chip (con la **×** se quita); al escribir aparecen como sugerencia los autores recientes del repositorio. Al hacer el commit se añade al mensaje una línea `Co-authored-by: Nombre <correo>` por cada co-autor, junto al `Signed-off-by` si lo marcaste, y GitHub y GitLab los reconocen. Lo escrito en el campo cuenta aunque no pulses Enter; si el formato no es válido se avisa y no se hace el commit. Al enmendar no se repiten los co-autores que el mensaje ya tenía. Los chips se vacían tras cada commit.
+
 ## Historial
 
 ![Historial](img/history.png)
 
 Grafo de commits con carriles de color por rama, búsqueda por mensaje, hash o autor (escribe `autor:nombre`), filtro por rama, primer padre y carga progresiva. Al elegir un commit se ven sus detalles y archivos. Desde el menú contextual de un commit: cherry-pick, revert, reset, crear rama o tag, rebase interactivo.
+
+### Enlaces a issues
+
+En el detalle de un commit, las referencias a issues del resumen y de la descripción son enlaces que se abren en el navegador. Para repositorios de GitHub, GitLab, Codeberg y Bitbucket la regla se deduce del remoto `origin` (`#123` abre `.../issues/123`). Para otro servidor, o para claves de Jira, se define en la configuración local del repositorio (**Más → git config**, ámbito local):
+
+| Clave | Valor |
+|-------|-------|
+| `gitora.issueUrl` | Dirección con `{id}`, por ejemplo `https://jira.empresa.com/browse/{id}` (solo `http` o `https`) |
+| `gitora.issuePattern` | `number` para `#123` (por omisión) o `key` para `ABC-123` |
+
+Solo existen esas dos formas de referencia, a propósito: no se aceptan expresiones regulares propias. Un `#` suelto, un color como `#fff` o un número pegado a una palabra no se enlazan.
 
 ## Barra de herramientas
 
@@ -125,6 +146,9 @@ Los secretos se cifran con el llavero del sistema y no llegan a la interfaz.
 | `Ctrl+Shift+P` | Paleta de comandos |
 | `Ctrl+O` | Abrir repositorio |
 | `F5` | Actualizar |
+| `↑` `↓` `Inicio` `Fin` | En las listas de archivos de Cambios: mover la selección |
+| `Enter` o `Espacio` | En las listas de archivos: preparar, quitar de lo preparado o resolver el conflicto |
+| `Supr` | Con el foco en una pestaña de repositorio: cerrarla |
 | `Ctrl+1` / `Ctrl+2` | Cambios locales / Historial |
 | `Ctrl+Shift+F` / `L` / `K` | Fetch / Pull / Push |
 | `Ctrl+Shift+B` | Crear rama |
@@ -144,7 +168,7 @@ Los secretos se cifran con el llavero del sistema y no llegan a la interfaz.
 |------|-----------|
 | Repositorios | Abrir, clonar, crear, pestañas, recientes, terminal y explorador |
 | Cambios | Stage por archivo, hunk y línea; descartar; ignorar; `clean` con vista previa; diff de imágenes (lado a lado, deslizador y mezcla) |
-| Commit | Resumen y descripción, enmendar, sign-off, omitir hooks, commit y push |
+| Commit | Resumen y descripción, tipos de commit convencionales, co-autores, enmendar, sign-off, omitir hooks, commit y push |
 | Historial | Grafo, búsqueda, historial de archivo, blame |
 | Ramas | Crear, checkout, renombrar, eliminar (local y remota), upstream |
 | Integración | Merge (ff, no-ff, ff-only, squash), rebase, rebase interactivo visual, cherry-pick, revert, reset |

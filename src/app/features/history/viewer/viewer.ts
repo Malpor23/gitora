@@ -26,6 +26,14 @@ import {
 import { GitFlows } from '@features/actions';
 import { Commit, CommitDetails, DiffFile, FileChange } from '@core/models';
 import { authorHue, initials } from '@shared/utils/avatar';
+import {
+  ISSUE_PATTERN_CONFIG_KEY,
+  ISSUE_URL_CONFIG_KEY,
+  IssueRule,
+  issueRuleFromRemote,
+  linkifyIssues,
+  parseIssueRule,
+} from '../../../../../shared/issue-links';
 
 const OVERSCAN = 12;
 
@@ -53,6 +61,12 @@ export class Viewer {
   readonly searchText = signal('');
 
   readonly details = signal<CommitDetails | null>(null);
+  /** Regla para enlazar issues: la del repositorio (git config local) o la deducida de su remoto. */
+  readonly issueRule = signal<IssueRule | null>(null);
+  readonly subjectParts = computed(() =>
+    linkifyIssues(this.details()?.subject ?? '', this.issueRule()),
+  );
+  readonly bodyParts = computed(() => linkifyIssues(this.details()?.body ?? '', this.issueRule()));
   readonly selectedFile = signal<FileChange | null>(null);
   readonly fileDiff = signal<DiffFile | null>(null);
 
@@ -79,6 +93,26 @@ export class Viewer {
   });
 
   constructor() {
+    // Regla de enlaces a issues del repositorio activo (git guarda las claves en minúsculas)
+    effect(() => {
+      const s = this.store();
+      const path = s.path();
+      const remotes = s.remotes();
+      this.issueRule.set(null);
+      void this.bridge
+        .git('configList', path, 'local')
+        .then((cfg) => {
+          const get = (key: string) =>
+            Object.entries(cfg).find(([k]) => k.toLowerCase() === key.toLowerCase())?.[1];
+          const custom = parseIssueRule(get(ISSUE_PATTERN_CONFIG_KEY), get(ISSUE_URL_CONFIG_KEY));
+          const remote = remotes.find((r) => r.name === 'origin') ?? remotes[0];
+          if (s.path() === path) {
+            this.issueRule.set(custom ?? (remote ? issueRuleFromRemote(remote.fetchUrl) : null));
+          }
+        })
+        .catch(() => undefined);
+    });
+
     // Detalle del commit seleccionado
     effect(() => {
       const s = this.store();
@@ -223,12 +257,19 @@ export class Viewer {
   /** Color estable por autor para el avatar de iniciales. */
   readonly authorHue = authorHue;
 
+  openIssue(url: string) {
+    void this.bridge.app('openExternal', url);
+  }
+
   openMenu(e: MouseEvent, c: Commit) {
     const s = this.store();
     if (!s.selectedHashes().includes(c.hash)) s.selectCommit(c.hash);
     // Orden del historial (más nuevo primero), no el orden de clic: cherry-pick, revert y parche dependen de él
     const picked = new Set(s.selectedHashes());
-    const inLog = s.commits().map((x) => x.hash).filter((h) => picked.has(h));
+    const inLog = s
+      .commits()
+      .map((x) => x.hash)
+      .filter((h) => picked.has(h));
     const selected = inLog.length === picked.size ? inLog : s.selectedHashes();
     const multi = selected.length > 1;
     const t = (k: string) => this.i18n.t(k);
@@ -241,13 +282,11 @@ export class Viewer {
         icon: 'switch',
         action: () => this.flows.checkout(s, r.name),
       })),
-      ...remoteRefs
-        .slice(0, 2)
-        .map((r) => ({
-          label: `${t('ctx.checkout')} ${r.name}`,
-          icon: 'switch',
-          action: () => this.flows.checkout(s, r.name),
-        })),
+      ...remoteRefs.slice(0, 2).map((r) => ({
+        label: `${t('ctx.checkout')} ${r.name}`,
+        icon: 'switch',
+        action: () => this.flows.checkout(s, r.name),
+      })),
       !multi && {
         label: t('ctx.checkoutCommit'),
         icon: 'git-commit',
@@ -265,13 +304,11 @@ export class Viewer {
         action: () => this.flows.createTag(s, c.hash),
       },
       { separator: true },
-      ...branchRefs
-        .slice(0, 1)
-        .map((r) => ({
-          label: `${t('ctx.mergeInto')}: ${r.name} → ${current}`,
-          icon: 'git-merge',
-          action: () => this.flows.merge(s, r.name),
-        })),
+      ...branchRefs.slice(0, 1).map((r) => ({
+        label: `${t('ctx.mergeInto')}: ${r.name} → ${current}`,
+        icon: 'git-merge',
+        action: () => this.flows.merge(s, r.name),
+      })),
       !multi && {
         label: t('ctx.rebaseOnto'),
         icon: 'git-rebase',

@@ -2787,3 +2787,57 @@ describe('diálogos de herramientas (E2E)', { skip }, () => {
     assert.deepEqual(ui.app.pageErrors, []);
   });
 });
+
+describe('historial: enlaces a issues (E2E)', { skip }, () => {
+  let fx: Fixture;
+  let ui: Ui;
+  const URL12 = 'https://tracker.test/issues/12';
+  const subjectLinks = () => ui.page.locator('gt-viewer h3 a');
+  const bodyLinks = () => ui.page.locator('gt-viewer pre a');
+
+  before(async () => {
+    fx = sidebarRepo();
+    fx.g('config', 'commit.gpgsign', 'false');
+    writeFileSync(path.join(fx.repo, 'issue.txt'), 'x\n');
+    fx.g('add', 'issue.txt');
+    fx.g('commit', '-m', 'Arregla #12 en el login', '-m', 'Refs #34, color #fff y a#9');
+    fx.g('config', '--local', 'gitora.issueUrl', 'https://tracker.test/issues/{id}');
+    ui = await boot(fx);
+    await ui.scroller.waitFor();
+    await ui.stubShell();
+  });
+  after(() => shutdown(ui, fx));
+  beforeEach(() => ui.closeAll());
+
+  it('las referencias del resumen y de la descripción son enlaces; los "#" que no lo son, no', async () => {
+    await ui.rowOf('Arregla #12').click();
+    await subjectLinks().first().waitFor();
+    assert.equal(await subjectLinks().count(), 1);
+    assert.equal(await subjectLinks().first().innerText(), '#12');
+    assert.equal(await subjectLinks().first().getAttribute('href'), URL12);
+    assert.equal(await ui.page.locator('gt-viewer h3').innerText(), 'Arregla #12 en el login', 'el texto no cambia');
+    assert.equal(await bodyLinks().count(), 1, 'solo #34: ni "#fff" ni "a#9"');
+    assert.equal(await bodyLinks().first().getAttribute('href'), 'https://tracker.test/issues/34');
+    assert.equal(await ui.page.locator('gt-viewer pre').innerText(), 'Refs #34, color #fff y a#9');
+  });
+
+  it('un clic pide abrir la dirección en el navegador y no navega dentro de la app', async () => {
+    await ui.rowOf('Arregla #12').click();
+    await subjectLinks().first().waitFor();
+    const before = ui.page.url();
+    await subjectLinks().first().click();
+    await until(async () => (await ui.shellCalls()).external.includes(URL12), 'openExternal con la dirección del issue');
+    assert.equal(ui.page.url(), before);
+  });
+
+  it('control negativo: sin regla en git config ni remoto conocido no hay enlaces', async () => {
+    fx.g('config', '--local', '--unset', 'gitora.issueUrl');
+    await ui.page.keyboard.press('F5');
+    await until(async () => {
+      await ui.rowOf('Arregla #12').click();
+      await ui.page.locator('gt-viewer h3').waitFor();
+      return (await subjectLinks().count()) === 0;
+    }, 'sin enlaces tras quitar la regla');
+    assert.equal(await bodyLinks().count(), 0);
+  });
+});
