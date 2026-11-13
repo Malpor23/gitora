@@ -36,7 +36,7 @@ Download the `.pacman` from [Releases](https://github.com/Malpor23/gitora/releas
 
 ```bash
 npm run dist:arch
-sudo pacman -U release/gitora-0.1.1.pacman
+sudo pacman -U release/gitora-0.1.2.pacman
 ```
 
 You can also use the bundled `PKGBUILD`:

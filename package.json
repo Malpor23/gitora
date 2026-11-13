@@ -1,7 +1,7 @@
 {
   "name": "gitora",
   "productName": "Gitora",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Cliente Git gráfico, moderno y multidioma para Windows, macOS y Linux",
   "author": "Manuel Gomez <mg230886@gmail.com>",
   "license": "MIT",

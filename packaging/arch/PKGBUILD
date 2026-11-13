@@ -3,7 +3,7 @@
 # Compila desde las fuentes del directorio del proyecto:
 #   cd packaging/arch && makepkg -si
 pkgname=gitora
-pkgver=0.1.1
+pkgver=0.1.2
 pkgrel=1
 pkgdesc="Cliente Git gráfico, moderno y multidioma (español/inglés)"
 arch=('x86_64' 'aarch64')
