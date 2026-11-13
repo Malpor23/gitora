@@ -2181,7 +2181,7 @@ describe('paleta de comandos (E2E)', { skip }, () => {
       assert.deepEqual(texts.sort(), [
         'Abrir repositorio…', 'Clonar desde mi cuenta', 'Clonar repositorio…', 'Crear repositorio (init)…',
         'Cuentas (GitHub, GitLab, Bitbucket, Gitea)…', 'Ajustes…', 'Mostrar/ocultar consola',
-        'Cambiar tema claro/oscuro', 'Switch to English',
+        'Cambiar tema claro/oscuro', 'Cambiar idioma',
       ].sort());
       await s2.page.keyboard.press('Escape');
       // Ctrl+Shift+P en Welcome también la abre, y Ctrl+, abre Ajustes sin repositorio
@@ -2231,7 +2231,7 @@ const COMMANDS: Record<string, string> = {
   'platform.accounts': 'Cuentas (GitHub, GitLab, Bitbucket, Gitea)…', 'platform.cloneAccount': 'Clonar desde mi cuenta',
   'platform.prs': 'Ver pull requests…', 'platform.createPr': 'Crear pull request…',
   'view.changes': 'Ir a cambios locales', 'view.history': 'Ir al historial', 'view.console': 'Mostrar/ocultar consola',
-  'view.theme': 'Cambiar tema claro/oscuro', 'view.language': 'Switch to English', 'view.settings': 'Ajustes…',
+  'view.theme': 'Cambiar tema claro/oscuro', 'view.language': 'Cambiar idioma', 'view.settings': 'Ajustes…',
 };
 const L = (id: string): string => {
   const l = COMMANDS[id];
@@ -2381,12 +2381,22 @@ describe('todos los comandos de la paleta (E2E)', { skip }, () => {
       await waitFor(async () => (await s.page.evaluate(() => document.documentElement.dataset['theme'])) === t0, 3000, 'tema restaurado');
     });
 
-    it('«Switch to English» cambia el idioma; el mismo comando (ahora en inglés) lo devuelve', async () => {
+    it('«Cambiar idioma» rota entre los cinco idiomas y vuelve al español', async () => {
+      const footer = async () => (await s.page.locator('footer button').nth(0).innerText()).trim();
+      assert.equal(await footer(), 'ES');
       await run('view.language');
       await s.bar('work').getByText('Branch', { exact: true }).waitFor();
-      assert.equal((await s.page.locator('footer button').nth(0).innerText()).trim(), 'EN');
-      await runCmd(s, 'Cambiar a español');
+      assert.equal(await footer(), 'EN');
+      await runCmd(s, 'Change language');
+      await waitFor(async () => (await footer()) === 'PT', 3000, 'portugués');
+      await runCmd(s, 'Mudar idioma');
+      await waitFor(async () => (await footer()) === 'FR', 3000, 'francés');
+      await runCmd(s, 'Changer de langue');
+      await waitFor(async () => (await footer()) === 'DE', 3000, 'alemán');
+      await runCmd(s, 'Sprache wechseln');
       await s.bar('work').getByText('Rama', { exact: true }).waitFor();
+      assert.equal(await footer(), 'ES');
+      assert.equal(await s.page.evaluate(() => document.documentElement.lang), 'es');
     });
   });
 

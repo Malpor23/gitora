@@ -225,6 +225,24 @@ describe('menú de la aplicación', () => {
     assert.deepEqual(roles(appMenuTemplate('es', opts)), roles(appMenuTemplate('en', opts)));
   });
 
+  it('portugués, francés y alemán traducen el menú sin repetir el inglés ni el español, con la misma estructura', () => {
+    const roles = (t: ReturnType<typeof appMenuTemplate>) =>
+      t.map((m) => (Array.isArray(m.submenu) ? m.submenu.map((i) => i.role ?? i.type) : []));
+    const base = roles(appMenuTemplate('es', opts));
+    const en = labels(appMenuTemplate('en', opts));
+    for (const lang of ['pt', 'fr', 'de'] as const) {
+      const t = appMenuTemplate(lang, opts);
+      assert.deepEqual(roles(t), base, `${lang}: estructura`);
+      const l = labels(t);
+      assert.ok(l.every((x) => typeof x === 'string'), `${lang}: etiquetas`);
+      assert.ok(!l.includes('File') && !l.includes('Archivo'), `${lang}: menú sin traducir`);
+      assert.notDeepEqual(l, en, `${lang}: igual que el inglés`);
+    }
+    assert.ok(labels(appMenuTemplate('pt', opts)).includes('Arquivo'));
+    assert.ok(labels(appMenuTemplate('fr', opts)).includes('Fichier'));
+    assert.ok(labels(appMenuTemplate('de', opts)).includes('Datei'));
+  });
+
   it('las opciones de desarrollo solo aparecen en modo dev', () => {
     const view = (dev: boolean) =>
       labels(appMenuTemplate('en', { ...opts, isDev: dev }));

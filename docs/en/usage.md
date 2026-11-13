@@ -96,7 +96,7 @@ Options that do not apply to the current state (for example, continue with no op
 
 ![Settings](img/settings.png)
 
-Language (Spanish or English, live), theme (dark, light, system), font size, confirmation for dangerous actions, working directory watching, preferred terminal, and the Git, Diff, Accounts and About tabs. The side panel width and the console height (drag their edge) are remembered between sessions.
+Language (Spanish, English, Brazilian Portuguese, French or German, live), theme (dark, light, system), font size, confirmation for dangerous actions, working directory watching, preferred terminal, and the Git, Diff, Accounts and About tabs. The side panel width and the console height (drag their edge) are remembered between sessions.
 
 ## Accounts
 

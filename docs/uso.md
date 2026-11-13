@@ -96,7 +96,7 @@ Las opciones que no aplican al estado actual (por ejemplo, continuar sin una ope
 
 ![Ajustes](img/settings.png)
 
-Idioma (español o inglés, en vivo), tema (oscuro, claro, del sistema), tamaño de letra, confirmación en acciones peligrosas, vigilancia del directorio de trabajo, terminal preferida, y las pestañas Git, Diff, Cuentas y Acerca de. El ancho del panel lateral y el alto de la consola (se arrastran desde su borde) se recuerdan entre sesiones.
+Idioma (español, inglés, portugués de Brasil, francés o alemán, en vivo), tema (oscuro, claro, del sistema), tamaño de letra, confirmación en acciones peligrosas, vigilancia del directorio de trabajo, terminal preferida, y las pestañas Git, Diff, Cuentas y Acerca de. El ancho del panel lateral y el alto de la consola (se arrastran desde su borde) se recuerdan entre sesiones.
 
 ## Cuentas
 

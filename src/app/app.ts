@@ -1,7 +1,7 @@
 import { Component, computed, effect, HostListener, inject, signal } from '@angular/core';
 
 import { I18n } from '@core/i18n';
-import { TPipe } from '@core/i18n/i18n';
+import { nextLanguage, TPipe } from '@core/i18n/i18n';
 import {
   BridgeService,
   ContextMenuService,
@@ -211,6 +211,6 @@ export class App {
   }
 
   toggleLanguage() {
-    void this.settings.update({ language: this.settings.value.language === 'es' ? 'en' : 'es' });
+    void this.settings.update({ language: nextLanguage(this.settings.value.language) });
   }
 }

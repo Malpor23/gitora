@@ -385,7 +385,7 @@
         (click)="toggleLanguage()"
         [title]="'settings.language' | t"
       >
-        {{ settings.settings()?.language === 'es' ? 'ES' : 'EN' }}
+        {{ (settings.settings()?.language ?? 'es').toUpperCase() }}
       </button>
       <button
         class="inline-flex cursor-pointer items-center gap-1.25 rounded-sm border-0 bg-transparent px-1.75 py-0.5 text-muted [font:inherit] hover:bg-hover hover:text-fg"

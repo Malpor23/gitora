@@ -389,7 +389,7 @@ export const es = {
     console: 'Mostrar/ocultar consola',
     runCustom: 'Ejecutar comando git personalizado…',
     toggleTheme: 'Cambiar tema claro/oscuro',
-    toggleLanguage: 'Switch to English',
+    toggleLanguage: 'Cambiar idioma',
     settings: 'Ajustes…',
     accounts: 'Cuentas (GitHub, GitLab, Bitbucket, Gitea)…',
     pullRequests: 'Ver pull requests…',

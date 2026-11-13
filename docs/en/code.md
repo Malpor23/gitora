@@ -43,9 +43,13 @@ Rules when implementing:
 
 ## Adding a language
 
-1. Copy `src/app/core/i18n/locales/en.ts` as `pt.ts` and translate it. It is typed against Spanish: a missing key does not compile.
-2. Register it in `DICTS` and `LANGUAGES` (`src/app/core/i18n/i18n.ts`) and add the code to the `Language` type (`src/app/core/models/setting.ts`).
-3. The native menu (`electron/app-menu.ts`) reads the `menu` section of the same dictionary, so it is covered.
+There are five: Spanish (default), English, Brazilian Portuguese, French and German.
+
+1. Copy `src/app/core/i18n/locales/en.ts` as `it.ts` (for example) and translate it. It is typed against Spanish: a missing key does not compile. Keep the `{{n}}` placeholders, the `...One` variants and the Git terms Spanish leaves in English.
+2. Register it in `DICTS`, `LANGUAGES` and `LOCALES` (the region used for dates and numbers) in `src/app/core/i18n/i18n.ts` and add the code to the `Language` type (`src/app/core/models/setting.ts`).
+3. Register it in `DICTS` of `electron/app-menu.ts` too: the native menu reads the `menu` section of the dictionary, but the main process has its own map.
+4. `src/app/core/i18n/i18n.spec.ts` checks that every dictionary has the same keys and the same `{{...}}` placeholders; add the new language to that test and to the list of codes. With more than two languages the footer button cycles through all of them (`nextLanguage`).
+5. The Windows installer (`installerLanguages` in `electron-builder.yml`) is only in Spanish and English: it is independent of the app interface.
 
 ## Adding a provider
 

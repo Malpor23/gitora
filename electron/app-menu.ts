@@ -1,9 +1,12 @@
 import type { MenuItemConstructorOptions } from 'electron';
 import type { Language } from '@core/models';
+import { de } from '../src/app/core/i18n/locales/de';
 import { en } from '../src/app/core/i18n/locales/en';
 import { es } from '../src/app/core/i18n/locales/es';
+import { fr } from '../src/app/core/i18n/locales/fr';
+import { pt } from '../src/app/core/i18n/locales/pt';
 
-const DICTS = { es, en } satisfies Record<Language, unknown>;
+const DICTS = { es, en, pt, fr, de } satisfies Record<Language, unknown>;
 
 /**
  * Plantilla del menú de la aplicación. Cada entrada usa un `role` (el comportamiento nativo)

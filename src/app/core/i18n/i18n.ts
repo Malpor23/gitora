@@ -1,22 +1,43 @@
 import { computed, inject, Pipe, PipeTransform, Service, signal } from '@angular/core';
 
+import { de } from '@core/i18n/locales/de';
 import { en } from '@core/i18n/locales/en';
 import { es } from '@core/i18n/locales/es';
+import { fr } from '@core/i18n/locales/fr';
+import { pt } from '@core/i18n/locales/pt';
 import { Translations } from '@core/i18n/types';
 import { Language } from '@core/models';
 
-const DICTS: Record<Language, Translations> = { es, en };
+const DICTS: Record<Language, Translations> = { es, en, pt, fr, de };
 
 export const LANGUAGES: { code: Language; label: string }[] = [
   { code: 'es', label: 'Español' },
   { code: 'en', label: 'English' },
+  { code: 'pt', label: 'Português (Brasil)' },
+  { code: 'fr', label: 'Français' },
+  { code: 'de', label: 'Deutsch' },
 ];
+
+/** Región con la que se formatean fechas y números en cada idioma. */
+const LOCALES: Record<Language, string> = {
+  es: 'es-CO',
+  en: 'en-US',
+  pt: 'pt-BR',
+  fr: 'fr-FR',
+  de: 'de-DE',
+};
+
+/** Idioma que sigue al actual en la lista, para el botón que los rota. */
+export function nextLanguage(current: Language): Language {
+  const i = LANGUAGES.findIndex((l) => l.code === current);
+  return LANGUAGES[(i + 1) % LANGUAGES.length].code;
+}
 
 @Service()
 export class I18n {
   readonly lang = signal<Language>('es');
   readonly dict = computed(() => DICTS[this.lang()]);
-  readonly locale = computed(() => (this.lang() === 'es' ? 'es-CO' : 'en-US'));
+  readonly locale = computed(() => LOCALES[this.lang()]);
 
   setLanguage(lang: Language) {
     this.lang.set(lang);

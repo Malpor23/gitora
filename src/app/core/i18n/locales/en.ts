@@ -387,7 +387,7 @@ export const en: Translations = {
     console: 'Toggle console',
     runCustom: 'Run custom git command…',
     toggleTheme: 'Toggle light/dark theme',
-    toggleLanguage: 'Cambiar a español',
+    toggleLanguage: 'Change language',
     settings: 'Settings…',
     accounts: 'Accounts (GitHub, GitLab, Bitbucket, Gitea)…',
     pullRequests: 'View pull requests…',

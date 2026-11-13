@@ -1,6 +1,6 @@
 import { Account } from './repository';
 
-export type Language = 'es' | 'en';
+export type Language = 'es' | 'en' | 'pt' | 'fr' | 'de';
 export type Theme = 'dark' | 'light' | 'system';
 export type ProviderKind = 'github' | 'gitlab' | 'bitbucket' | 'gitea';
 

@@ -1,6 +1,7 @@
 import { inject, Service } from '@angular/core';
 
 import { I18n } from '@core/i18n';
+import { nextLanguage } from '@core/i18n/i18n';
 import { BridgeService, MenuItem, SettingsService, WorkspaceService } from '@core/services';
 import { RepositoryStore } from '@core/store';
 import { GitFlows } from '@features/actions/git-flows.service';
@@ -788,7 +789,7 @@ export class Commands {
         category: 'view',
         label: 'commands.toggleLanguage',
         icon: 'languages',
-        run: () => this.settings.update({ language: this.i18n.lang() === 'es' ? 'en' : 'es' }),
+        run: () => this.settings.update({ language: nextLanguage(this.i18n.lang()) }),
       },
       {
         id: 'view.settings',

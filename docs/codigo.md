@@ -43,9 +43,13 @@ Reglas al implementar:
 
 ## Agregar un idioma
 
-1. Copia `src/app/core/i18n/locales/en.ts` como `pt.ts` y tradúcelo. Está tipado contra el español: si falta una clave, no compila.
-2. Regístralo en `DICTS` y `LANGUAGES` (`src/app/core/i18n/i18n.ts`) y agrega el código al tipo `Language` (`src/app/core/models/setting.ts`).
-3. El menú nativo (`electron/app-menu.ts`) lee la sección `menu` del mismo diccionario, así que queda cubierto.
+Hay cinco: español (por omisión), inglés, portugués de Brasil, francés y alemán.
+
+1. Copia `src/app/core/i18n/locales/en.ts` como `it.ts` (por ejemplo) y tradúcelo. Está tipado contra el español: si falta una clave, no compila. Conserva los marcadores `{{n}}`, las variantes `...One` y los términos de Git que el español deja en inglés.
+2. Regístralo en `DICTS`, `LANGUAGES` y `LOCALES` (la región para fechas y números) de `src/app/core/i18n/i18n.ts` y agrega el código al tipo `Language` (`src/app/core/models/setting.ts`).
+3. Regístralo también en `DICTS` de `electron/app-menu.ts`: el menú nativo lee la sección `menu` del diccionario, pero el proceso principal tiene su propio mapa.
+4. `src/app/core/i18n/i18n.spec.ts` comprueba que todos los diccionarios tengan las mismas claves y los mismos marcadores `{{...}}`; añade el nuevo idioma a esa prueba y a la lista de códigos. Con más de dos idiomas el botón del pie rota entre todos (`nextLanguage`).
+5. El instalador de Windows (`installerLanguages` en `electron-builder.yml`) solo está en español e inglés: es independiente de la interfaz de la app.
 
 ## Agregar un proveedor
 
