@@ -39,7 +39,7 @@
   "devDependencies": {
     "@angular/build": "^22.2.6",
     "@angular/cli": "^22.2.6",
-    "@angular/compiler-cli": "^22.2.0",
+    "@angular/compiler-cli": "^22.2.6",
     "@tailwindcss/postcss": "^4.1.12",
     "@types/node": "^22.20.5",
     "axe-core": "^4.14.0",
